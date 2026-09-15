@@ -37,7 +37,7 @@ export function ReservationForm() {
     <div className="form-field form-field--wide"><label htmlFor="reservation-guests">Létszám*</label><input id="reservation-guests" name="guests" type="number" inputMode="numeric" min="1" max="100" required placeholder="2" /></div>
     <div className="form-field form-field--wide"><label htmlFor="reservation-message">Megjegyzés</label><textarea id="reservation-message" name="message" placeholder="Ha van különleges kérése, írja meg itt." /></div>
     <label className="consent"><input type="checkbox" required /> <span>Elolvastam és elfogadom az Adatkezelési tájékoztatót.</span></label>
-    <div className="form-submit"><button className="button button--red" type="submit">Foglalási igény elküldése <span aria-hidden="true">↗</span></button><p aria-live="polite">{sent ? "Megnyitottuk az e-mail-küldést. A foglalás az étterem visszaigazolásával válik véglegessé." : "A foglalás az étterem visszaigazolásával válik véglegessé."}</p></div>
+    <div className="form-submit"><button className="button button--brown" type="submit">Foglalási igény elküldése</button><p aria-live="polite">{sent ? "Megnyitottuk az e-mail-küldést. A foglalás az étterem visszaigazolásával válik véglegessé." : "A foglalás az étterem visszaigazolásával válik véglegessé."}</p></div>
   </form>;
 }
 
@@ -65,6 +65,6 @@ export function ContactForm() {
     <div className="form-field form-field--wide"><label htmlFor="contact-topic">Érdeklődés témája*</label><select id="contact-topic" name="topic" defaultValue="Családi rendezvény" required><option>Étterem</option><option>Közétkeztetés</option><option>Családi rendezvény</option><option>Céges rendezvény</option><option>Catering</option><option>Esküvő</option><option>Egyéb</option></select></div>
     <div className="form-field form-field--wide"><label htmlFor="contact-message">Üzenet*</label><textarea id="contact-message" name="message" required placeholder="Írja meg röviden, miben segíthetünk…" /></div>
     <label className="consent"><input type="checkbox" required /> <span>Elolvastam és elfogadom az Adatkezelési tájékoztatót.</span></label>
-    <div className="form-submit"><button className="button" type="submit">Üzenet küldése <span aria-hidden="true">↗</span></button><p aria-live="polite">{sent ? "Megnyitottuk az e-mail-küldést az elkészített üzenettel." : "Az üzenet az Ön levelezőprogramjában nyílik meg."}</p></div>
+    <div className="form-submit"><button className="button button--brown" type="submit">Üzenet küldése</button><p aria-live="polite">{sent ? "Megnyitottuk az e-mail-küldést az elkészített üzenettel." : "Az üzenet az Ön levelezőprogramjában nyílik meg."}</p></div>
   </form>;
 }
