@@ -106,7 +106,7 @@ h3{font-size:clamp(1.45rem,2vw,2rem)}
 
 .booking-callout{background:var(--olive);border-bottom:1px solid var(--line);border-top:1px solid var(--line);color:var(--brown-dark);padding:78px 0}
 .booking-callout__inner{align-items:center;display:grid;gap:60px;grid-template-columns:1fr auto}
-.booking-callout .section-label{color:var(--brown)}.booking-callout h2{font-size:clamp(2.4rem,4vw,4.35rem);margin-bottom:15px}.booking-callout__inner>div>p:not(.section-label){color:#394018;max-width:690px}
+.booking-callout .section-label{color:var(--brown)}.booking-callout h2{color:#fff;font-size:clamp(2.4rem,4vw,4.35rem);margin-bottom:15px}.booking-callout__inner>div>p:not(.section-label){color:#394018;max-width:690px}
 .booking-callout__actions{align-items:center;display:flex;gap:25px}.phone-link{border-bottom:1px solid var(--olive);font-family:var(--font-title);font-size:1.15rem;padding:9px 0}
 
 .contact{background:var(--sand)}
