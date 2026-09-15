@@ -11,6 +11,6 @@ export const metadata: Metadata = {
 export default function ReservationPage() {
   return <main className="reservation-page">
     <header className="reservation-header"><div className="shell"><Link href="/" aria-label="Vissza a Kastélydomb kezdőlapjára"><Image className="logo" src="/images/kastelydomb-logo.png" alt="Kastélydomb Kávézó és Étterem" width={224} height={75} priority /></Link><Link className="reservation-back" href="/">Vissza a kezdőlapra</Link></div></header>
-    <section className="reservation-section"><div className="shell reservation-grid"><div className="reservation-intro"><p className="section-label">Asztalfoglalás</p><h1>Foglalj asztalt a Kastélydombon.</h1><p>Add meg az alapadatokat, és küldd el foglalási igényedet. A foglalás az étterem visszaigazolásával válik véglegessé.</p><div className="reservation-contact"><span>Telefonos foglalás</span><a href="tel:+36302644081">+36 30 264 4081</a></div></div><div className="reservation-form"><ReservationForm /></div></div></section>
+    <section className="reservation-section"><div className="shell reservation-grid"><div className="reservation-intro"><p className="section-label">Asztalfoglalás</p><h1>Foglaljon asztalt a Kastélydombon.</h1><p>Adja meg az alapadatokat, és küldje el foglalási igényét. A foglalás az étterem visszaigazolásával válik véglegessé.</p><div className="reservation-contact"><span>Telefonos foglalás</span><a href="tel:+36302644081">+36 30 264 4081</a></div></div><div className="reservation-form"><ReservationForm /></div></div></section>
   </main>;
 }
