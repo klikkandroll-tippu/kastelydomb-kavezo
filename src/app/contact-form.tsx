@@ -58,13 +58,13 @@ export function ContactForm() {
     setSent(true);
   }
 
-  return <form className="contact-form contact-form--dark" onSubmit={handleSubmit}>
+  return <form className="contact-form" onSubmit={handleSubmit}>
     <div className="form-field"><label htmlFor="contact-name">Név*</label><input id="contact-name" name="name" autoComplete="name" required placeholder="Teljes név" /></div>
     <div className="form-field"><label htmlFor="contact-email">E-mail*</label><input id="contact-email" name="email" type="email" autoComplete="email" required placeholder="pelda@email.hu" /></div>
     <div className="form-field form-field--wide"><label htmlFor="contact-phone">Telefonszám</label><input id="contact-phone" name="phone" type="tel" autoComplete="tel" placeholder="+36 30 000 0000" /></div>
     <div className="form-field form-field--wide"><label htmlFor="contact-topic">Érdeklődés témája*</label><select id="contact-topic" name="topic" defaultValue="Családi rendezvény" required><option>Étterem</option><option>Közétkeztetés</option><option>Családi rendezvény</option><option>Céges rendezvény</option><option>Catering</option><option>Esküvő</option><option>Egyéb</option></select></div>
     <div className="form-field form-field--wide"><label htmlFor="contact-message">Üzenet*</label><textarea id="contact-message" name="message" required placeholder="Írja meg röviden, miben segíthetünk…" /></div>
     <label className="consent"><input type="checkbox" required /> <span>Elolvastam és elfogadom az Adatkezelési tájékoztatót.</span></label>
-    <div className="form-submit"><button className="button button--gold" type="submit">Üzenet küldése <span aria-hidden="true">↗</span></button><p aria-live="polite">{sent ? "Megnyitottuk az e-mail-küldést az elkészített üzenettel." : "Az üzenet az Ön levelezőprogramjában nyílik meg."}</p></div>
+    <div className="form-submit"><button className="button" type="submit">Üzenet küldése <span aria-hidden="true">↗</span></button><p aria-live="polite">{sent ? "Megnyitottuk az e-mail-küldést az elkészített üzenettel." : "Az üzenet az Ön levelezőprogramjában nyílik meg."}</p></div>
   </form>;
 }
