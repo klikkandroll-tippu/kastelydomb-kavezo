@@ -5,6 +5,7 @@ const nextConfig: NextConfig = {
     return [
       { source: "/", destination: "/kastelydomb-v2.html" },
       { source: "/napi-menu", destination: "/kastelydomb-napi-menu-v7.html" },
+      { source: "/etlap-itallap", destination: "/etlap-itallap.html" },
     ];
   },
 };
