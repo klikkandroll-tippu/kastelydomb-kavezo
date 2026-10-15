@@ -8,6 +8,7 @@ const nextConfig: NextConfig = {
       { source: "/etlap-itallap", destination: "/etlap-itallap.html" },
       { source: "/asztalfoglalas", destination: "/asztalfoglalas.html" },
       { source: "/adatkezelesi-tajekoztato", destination: "/adatkezelesi-tajekoztato.html" },
+      { source: "/szechenyi-2020", destination: "/szechenyi-2020.html" },
     ];
   },
 };
