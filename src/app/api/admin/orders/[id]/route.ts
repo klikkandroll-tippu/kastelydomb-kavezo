@@ -1,5 +1,5 @@
 import { NextRequest,NextResponse } from "next/server";
-import {authorized,configError,db} from "../route";
+import {authorized,configError,db} from "@/lib/admin-server";
 export const dynamic="force-dynamic";
 const statuses=["new","confirmed","preparing","ready","completed","cancelled"];
 const payments=["unpaid","pending","paid"];
