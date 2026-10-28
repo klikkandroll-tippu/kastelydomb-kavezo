@@ -25,3 +25,6 @@ create index if not exists kastelydomb_orders_created_idx on public.kastelydomb_
 alter table public.kastelydomb_orders enable row level security;
 revoke all on public.kastelydomb_orders from anon, authenticated;
 -- Az admin API csak a szerveroldali service_role kulccsal érheti el.
+
+-- Service API key runs with service_role; explicit grants are needed when public auto-grants are disabled.
+grant select, insert, update on public.kastelydomb_orders to service_role;
