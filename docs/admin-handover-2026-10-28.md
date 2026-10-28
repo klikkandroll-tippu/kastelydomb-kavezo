@@ -15,7 +15,7 @@ Dátum: 2026. október 28., Europe/Budapest.
 - [Supabase projekt](https://supabase.com/dashboard/project/snxlismmgzwpxerenwsv)
 - [Telepítési és üzemeltetési útmutató](admin-setup.md)
 
-A Vercel GitHub-integrációja az első frissített kódcommit (`a87d118`) buildjét Ready állapotúnak jelezte. Ez buildbizonyíték, nem teljes működési igazolás. Az aktuális fejlesztési ág további tesztelt javításokat is tartalmaz; a legfrissebb commit telepítési állapotát a PR Vercel-ellenőrzése mutatja.
+A tesztelt alkalmazáskód commitja: [`50dbb3c39d9952d7457df5f61e978d9b1d0a1dce`](https://github.com/klikkandroll-tippu/kastelydomb-kavezo/commit/50dbb3c39d9952d7457df5f61e978d9b1d0a1dce). Ehhez a GitHubon jelzett Vercel-ellenőrzés **success**, a telepítés [itt érhető el](https://vercel.com/tippanzsolt-8580s-projects/kastelydomb-kavezo/FT77T2ZUW4rAVGLVuvVJSw3dTSys). Ez buildbizonyíték, nem teljes működési igazolás. A PR nyitott tervezet, konfliktus nélkül integrálható. A `main` ellenőrzött fejcommitja továbbra is `6a4386b854585f77cf434d3780492068de4f8a68`; nem változott. Az ezt követő jelentésfrissítés csak dokumentációt módosít.
 
 ## 2. Elkészült funkciók
 
