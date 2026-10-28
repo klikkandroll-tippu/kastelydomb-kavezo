@@ -1,21 +1,35 @@
-import { NextRequest,NextResponse } from "next/server";
-import {authorized,configError,db} from "@/lib/admin-server";
-export const dynamic="force-dynamic";
-const statuses=["new","confirmed","preparing","ready","completed","cancelled"];
-const payments=["unpaid","pending","paid"];
-export async function PATCH(req:NextRequest,context:{params:Promise<{id:string}>}){
- const config=configError();if(config)return config;
- if(!authorized(req))return NextResponse.json({error:"Hibás admin jelszó."},{status:401});
- const {id}=await context.params;
- if(!/^[0-9a-f-]{36}$/i.test(id))return NextResponse.json({error:"Érvénytelen azonosító."},{status:400});
- const payload=await req.json().catch(()=>null);
- if(!payload||typeof payload!=="object"||Array.isArray(payload))return NextResponse.json({error:"Érvénytelen adat."},{status:400});
- const keys=Object.keys(payload);
- if(keys.length!==1||!((keys[0]==="status"&&statuses.includes(payload.status))||(keys[0]==="payment_status"&&payments.includes(payload.payment_status))))
- return NextResponse.json({error:"Nem megengedett módosítás."},{status:400});
- const result=await db("kastelydomb_orders?id=eq."+id,{method:"PATCH",body:JSON.stringify(payload)});
- if(!result.ok)return NextResponse.json({error:"A módosítás nem menthető."},{status:502});
- const rows=await result.json();
- if(!rows.length)return NextResponse.json({error:"A rendelés nem található."},{status:404});
- return NextResponse.json({order:rows[0]},{headers:{"Cache-Control":"no-store"}});
+import { NextRequest } from "next/server";
+import { guard, body, rpc, json } from "@/lib/admin-server";
+export const dynamic = "force-dynamic";
+export async function PATCH(
+  req: NextRequest,
+  context: { params: Promise<{ id: string }> },
+) {
+  try {
+    const denied = await guard(req);
+    if (denied) return denied;
+    const { id } = await context.params;
+    const p = await body(req);
+    if (
+      !/^[0-9a-f-]{36}$/i.test(id) ||
+      Object.keys(p).length !== 1 ||
+      ![
+        "new",
+        "confirmed",
+        "preparing",
+        "ready",
+        "completed",
+        "cancelled",
+      ].includes(p.status)
+    )
+      return json({ error: "Érvénytelen módosítás." }, 400);
+    return json({
+      order: await rpc("kd_order_status", { p_order: id, p_status: p.status }),
+    });
+  } catch (e) {
+    return json(
+      { error: e instanceof Error ? e.message : "Mentési hiba." },
+      400,
+    );
+  }
 }
