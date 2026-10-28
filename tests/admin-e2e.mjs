@@ -170,7 +170,9 @@ const server = spawn(
       ADMIN_PASSWORD: password,
       SUPABASE_URL: "http://localhost:3101",
       SUPABASE_SERVICE_ROLE_KEY: "test-only-key",
-      ORDER_INTAKE_ENABLED: "true",
+      ORDER_INTAKE_ENABLED: "false",
+      CLIENT_TEST_ORDERS_ENABLED:"true",
+      KASTELYDOMB_MODE:"test",
     },
     stdio: ["ignore", "pipe", "pipe"],
   },
@@ -258,6 +260,9 @@ try {
   r = await fetch(origin + "/api/admin/orders", { headers });
   assert.equal(r.status, 401);
   checks.push("Logout revokes session");
+  const systemStatus=await (await fetch(origin+"/api/system-status")).json();
+  assert.equal(systemStatus.mode,"test");assert.equal(systemStatus.order_intake_enabled,true);
+  checks.push("Client test mode uses a separate order switch");
   browser = await chromium.launch({
     executablePath: process.env.TEST_CHROMIUM_EXECUTABLE || undefined,
     headless: true,
@@ -272,6 +277,7 @@ try {
   await page.getByLabel("Adminjelszó").fill(password);
   await page.getByRole("button", { name: "Belépés", exact: true }).click();
   await page.getByRole("heading", { name: "Kezdőlap", exact: true }).waitFor();
+  assert.equal(await page.getByRole("note",{name:"Tesztüzem",exact:true}).isVisible(),true);
   checks.push("Browser login and dashboard");
   await page
     .getByRole("button", { name: "Futárok", exact: false })
@@ -341,6 +347,7 @@ try {
   r = await fetch(origin + "/api/menu");
   const menu = await r.json();
   assert.equal(menu.weeks[0].week_start, menuStart);
+  assert.equal(menu.intake_enabled,true);
   checks.push("Published menu public API");
   await page.goto(origin + "/napi-menu");
   await page.getByRole("tab", { name: new RegExp(menuStart) }).waitFor();
@@ -374,6 +381,7 @@ try {
   assert.equal(r.status, 201);
   let order = await r.json();
   assert.equal(order.total_huf, 5600);
+  assert.equal(order.is_test,true);
   assert.equal(state.orders.find(x=>x.id===request.request_id).delivery_address,null);
   assert.equal(
     state.orders

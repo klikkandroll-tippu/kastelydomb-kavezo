@@ -22,7 +22,7 @@ export async function GET(req: NextRequest) {
     const orders = [];
     for (let offset = 0; offset < 10000; offset += 1000) {
       const r = await db(
-        `kastelydomb_orders?select=id,order_number,customer_name,customer_email,customer_phone,customer_type,company_name,company_address,tax_number,fulfillment,delivery_address,payment_method,payment_status,status,total_huf,items,notes,created_at&order=created_at.desc,id&limit=1000&offset=${offset}`,
+        `kastelydomb_orders?select=id,is_test,order_number,customer_name,customer_email,customer_phone,customer_type,company_name,company_address,tax_number,fulfillment,delivery_address,payment_method,payment_status,status,total_huf,items,notes,created_at&order=created_at.desc,id&limit=1000&offset=${offset}`,
       );
       if (!r.ok) throw Error();
       const rows = await r.json();

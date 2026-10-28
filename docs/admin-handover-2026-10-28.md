@@ -1,115 +1,98 @@
-# Kastélydomb Kávézó és Étterem – adminisztrációs rendszer átadása
+# Kastélydomb – adminrendszer és ügyfélteszt átadása
 
-Dátum: 2026. október 28., Europe/Budapest.
+2026. október 28. A felhasználó döntése: előbb ügyfél által kipróbálható, interneten elérhető **tesztüzem**, megtartott tesztadatokkal; a törlés és a valódi üzemi indulás csak az elfogadás után történhet.
 
-**Státusz: a hiányzó adminmodulok implementálva, helyben és az adatbázison tesztelve. Az éles üzembe helyezés nincs kész.** A Vercel-előnézet és a valódi Supabase közötti teljes folyamatot a jelenlegi Vercel-hozzáférés 403-as hibája miatt nem lehetett igazolni. A `main` ág és az éles weboldal nem lett módosítva. Az éles adatbázison visszafelé kompatibilis, hozzáadó migrációk futottak le.
+## Állapot és elérhetőségek
 
-## 1. Hivatkozások
+A működési modulok elkészültek és a telepített Preview → valódi Supabase → admin folyamat is sikeresen tesztelt. A külön ügyféltesztmód helyi ellenőrzése sikeres. A közönség számára elérhető production admin tesztüzemi kiadása még függőben van: a meglévő adminsecret Production környezethez rendelését az automatikus jóváhagyási ellenőrzés blokkolta. A hitelesítési védelmet nem kapcsoltam ki és a korlátozást nem kerültem meg. A `main` ág az átadás ezen pontján változatlan.
 
 - [GitHub projekt](https://github.com/klikkandroll-tippu/kastelydomb-kavezo)
 - [Fejlesztési ág](https://github.com/klikkandroll-tippu/kastelydomb-kavezo/tree/feature/menu-order-admin-20261027)
-- [Pull request #2](https://github.com/klikkandroll-tippu/kastelydomb-kavezo/pull/2)
+- [PR #2](https://github.com/klikkandroll-tippu/kastelydomb-kavezo/pull/2)
 - [Vercel projekt](https://vercel.com/tippanzsolt-8580s-projects/kastelydomb-kavezo)
-- [Vercel Preview](https://kastelydomb-kavezo-git-featur-2f070b-tippanzsolt-8580s-projects.vercel.app)
-- [Admin az előnézetben](https://kastelydomb-kavezo-git-featur-2f070b-tippanzsolt-8580s-projects.vercel.app/admin)
-- [Supabase projekt](https://supabase.com/dashboard/project/snxlismmgzwpxerenwsv)
-- [Telepítési és üzemeltetési útmutató](admin-setup.md)
+- [Preview admin](https://kastelydomb-kavezo-git-featur-2f070b-tippanzsolt-8580s-projects.vercel.app/admin)
+- [Publikus webcím](https://kastelydomb-kavezo.vercel.app) – még a korábbi production verzió, nem minősül az új admin átadásának.
+- [Supabase](https://supabase.com/dashboard/project/snxlismmgzwpxerenwsv)
+- [Üzemeltetési útmutató](admin-setup.md)
 
-A tesztelt alkalmazáskód commitja: [`50dbb3c39d9952d7457df5f61e978d9b1d0a1dce`](https://github.com/klikkandroll-tippu/kastelydomb-kavezo/commit/50dbb3c39d9952d7457df5f61e978d9b1d0a1dce). Ehhez a GitHubon jelzett Vercel-ellenőrzés **success**, a telepítés [itt érhető el](https://vercel.com/tippanzsolt-8580s-projects/kastelydomb-kavezo/FT77T2ZUW4rAVGLVuvVJSw3dTSys). Ez buildbizonyíték, nem teljes működési igazolás. A PR nyitott tervezet, konfliktus nélkül integrálható. A `main` ellenőrzött fejcommitja továbbra is `6a4386b854585f77cf434d3780492068de4f8a68`; nem változott. Az ezt követő jelentésfrissítés csak dokumentációt módosít.
+A korábbi teljes, telepített működési teszt a `3617225f8402f1eafe445ba66f0ab157256a6553` kódon történt; Vercel telepítés: [AWXaDpW5jcCjRMx5dR2DX9JHDZZb](https://vercel.com/tippanzsolt-8580s-projects/kastelydomb-kavezo/AWXaDpW5jcCjRMx5dR2DX9JHDZZb). A build Ready állapota mellett a lent felsorolt tényleges folyamatok is igazoltak.
 
-## 2. Elkészült funkciók
+## Elkészült funkciók
 
-| Modul | Megvalósított működés | Ellenőrzés |
-| --- | --- | --- |
-| Adminbelépés | Szerveroldali jelszóellenőrzés; lejáró, visszavonható munkamenet; HttpOnly/Secure/Strict süti; belépési korlát; módosító kérések eredetellenőrzése | Helyi valódi Next API és böngésző; DB-jogosultságok ellenőrzése |
-| Rendelések | Valós adatlista, keresés, állapotszűrő, részletek, nyomtatható rendeléslap, szerveroldali állapotváltás | Böngészőben adatbetöltés; állapotműveletek valódi DB-tranzakcióban |
-| Futárok | Létrehozás, szerkesztés, aktív/inaktív állapot, telefon, terület | Böngészős létrehozás; DB-függvény teszt |
-| Kiszállítás | Aktív futár hozzárendelése rendeléshez; hozzárendelés ellenőrzése befizetéskor és teljesítéskor | Böngésző/API és DB-teszt |
-| Fizetések | Rész- és teljes befizetés, készpénz/kártya/céges átutalás, átvevő, napló, automatikus egyenleg | Böngészős részfizetés; valódi DB-n rész/teljes fizetés, duplikáció- és túlfizetés-tiltás |
-| Kintlévőségek | Tényleges befizetésből számolt fennmaradó összeg | Böngészős befizetési folyamat és egyenleglogika |
-| Futárelszámolás | Időszak lezárása, készpénz/kártya/hátralék/rendelésszám; átfedés tiltása | Valódi DB-tranzakció; a felület betöltése mobilon |
-| Heti menü | Öt hétköznap szerkesztése, piszkozat/publikálás, bekötés a meglévő menürendelőbe | Böngészős mentés és publikálás; nyilvános API és vendégoldali megjelenés |
-| Ügyfelek | Telefon/e-mail szerint összesített névjegyzék, céges számlázási adatok, rendelések, hátralék | Böngészős megjelenítés |
-| Riport | Dátumszűrés, összeg/befizetés/hátralék, CSV-export és nyomtatási művelet | Böngészős CSV-letöltés; dátumhatár-tesztek |
-| Rendelésbeküldés | Szerveroldali ár- és szabályellenőrzés; céges adatok tárolása; pontos levesadagszám; ismételt küldés védelme | Helyi Next → tesztadatbázis API-folyamat; negatív tesztek |
-| Reszponzív felület | Meglévő sötétbarna oldalsáv és világos munkatér; teljes szélesség; mobilmenü; vízszintesen görgethető táblák | 1440 px és 390 px Chromium, képi ellenőrzéssel |
-
-Az üzleti felületeken nincs beégetett mintarendelés. A tesztkiszolgálóban szereplő szintetikus adatok nem kerültek az éles adatbázisba.
-
-## 3. Tesztbizonyíték és annak határai
-
-- `npm test`: **10/10 sikeres** – budapesti 09:00/14:30 határidők, téli/nyári időszámítás, múlt/jövő, napi/heti/havi jelentési dátumhatárok, menüstruktúra.
-- `npm run lint`: **sikeres, 0 hiba**.
-- `npm run build`: **sikeres**, a TypeScript-ellenőrzéssel együtt.
-- `npm run test:e2e`: **26/26 sikeres** – jogosulatlan olvasás, más eredetű belépés, hibás jelszó, biztonságos süti, kijelentkezés, közvetlen fizetett-állapot átírásának tiltása, hibás befizetés, belépés, futárkezelés, hozzárendelés, részfizetés, ügyfélnézet, CSV, menüpublikálás, vendégoldali megjelenés, rendelésár, levesmennyiség, duplikált küldés, mobilnavigáció, valamint tiltott rendelési kombinációk.
-- `tests/database-workflows.sql`: **sikeres a valódi Supabase projekten**, `service_role` jogosultsággal; rész-/teljes fizetés, idempotencia, túlfizetés tiltása, befizetett rendelés lemondásának tiltása, hozzárendelés, teljesítés, elszámolás, átfedés, sebességkorlát és szerepkör-korlátozások.
-- A DB-teszt tranzakciója `ROLLBACK`-kel zárult. Nem maradt benne tesztrendelés, tesztfutár vagy tesztbefizetés.
-- Böngésző: Chromium; 1440×1000 és 390×844 nézet. Nincs böngészős JavaScript-hiba, a mobiloldal nem lóg túl a képernyőn.
-
-**Lényeges különbség:** a böngészős E2E a valódi alkalmazást egy elkülönített PostgREST tesztkiszolgálóval futtatja. A pénzügyi SQL-függvények külön, a valódi Supabase-en lettek ellenőrizve. A telepített Vercel-környezet, annak titkos változói, a Supabase Data API-ja és az admin együttes működése még nincs végponttól végpontig igazolva.
-
-## 4. Adatbázis-módosítások
-
-Projektazonosító: `snxlismmgzwpxerenwsv`. A Kastélydomb-táblák és migrációs előzmények egyértelműen azonosították; más ügyfél adatbázisa nem lett módosítva.
-
-Alkalmazott migrációk ebben a munkában:
-
-| Verzió | Név |
+| Modul | Működés és ellenőrzés |
 | --- | --- |
-| `20261028012242` | `kastelydomb_admin_workflows` |
-| `20261028012439` | `kastelydomb_order_request_fingerprint` |
+| Adminbelépés | Szerveroldali ellenőrzés, 8 órás visszavonható munkamenet, HttpOnly/Secure/SameSite Strict süti, sebességkorlát, eredetellenőrzés. Valódi Preview-belépés sikeres; negatív esetek helyi API-teszten. |
+| Rendelések | Adatbázisból betöltött lista, keresés, állapot és részletek, nyomtatható rendeléslap; valódi rendelés megjelent az adminban. |
+| Futárok és kiszállítás | Futár létrehozás/szerkesztés/aktivitás, hozzárendelés és teljesítés; valódi UI → DB teszt sikeres. |
+| Befizetések | Rész- és teljes összeg, készpénz/kártya/céges átutalás, idempotencia, túlfizetés tiltása, automatikus egyenleg; valódi készpénz- és kártyateszt sikeres. |
+| Kintlévőségek | Naplózott befizetés alapján számolt tartozás; a tesztben 3 600 Ft-ról 0 Ft-ra változott. |
+| Elszámolások | Múltbeli időszak lezárása, készpénz/kártya/hátralék/rendelésszám, átfedés tiltása; valódi UI és DB ellenőrzés. |
+| Heti menü | Öt hétköznap szerkesztése, piszkozat/publikálás; a publikált tesztmenü a meglévő vendégoldalon megjelent. |
+| Ügyfelek | Rendelési adatokból képzett névjegyzék, céges adatok, rendelés- és tartozásösszesítés. |
+| Riport | Budapest szerinti dátumszűrés, összeg/befizetés/hátralék, CSV és nyomtatás; valódi CSV fájl tartalma ellenőrizve. |
+| Vendégrendelés | Szerveroldali ár- és határidőellenőrzés, céges adatok, pontos levesadag, ismételt küldés elleni védelem. |
+| Megjelenés | A meglévő barna/világos koncepció megmaradt; javított teljes szélesség, mobilmenü, görgethető táblák; 1440 és 390 px ellenőrzés. |
+| Ügyféltesztmód | Látható tesztjelzés, külön tesztrendelési kapcsoló, adatbázis-jelölés, teszt-visszaigazolás, nyomtatvány/CSV jelölés, tesztmódban valódi utalási instrukció helyett figyelmeztetés. Helyben tesztelt. |
 
-Új táblák: `kastelydomb_admin_sessions`, `kastelydomb_rate_limits`, `kastelydomb_audit`.
+## Tesztbizonyíték
 
-Új mezők: rendeléshez `company_address`, `tax_number`, `request_fingerprint`; befizetéshez egyedi `request_id`.
+- `npm test`: **15/15 sikeres**. Budapest szerinti határidők, téli/nyári idő, riporthatárok, menüstruktúra és a teszt/valódi rendelési kapcsolók elkülönítése.
+- `npm run lint`: sikeres, 0 hiba.
+- `npm run build`: sikeres, TypeScript-ellenőrzéssel.
+- `npm run test:e2e`: **27/27 sikeres**, valódi production Next-kiszolgálóval és elkülönített PostgREST tesztkiszolgálóval. Belépés, jogosultság, eredetvédelem, süti, kilépés, futár, hozzárendelés, részfizetés, ügyfél, riport, CSV, menüpublikálás, vendégoldal, negatív rendelési esetek, idempotencia, tesztjelölés, mobil és JavaScript-hibák ellenőrzése.
+- `tests/database-workflows.sql`: valódi Supabase-en sikeres, a végén `ROLLBACK`; tranzakciós pénzügyi invariánsok és szerepkör-korlátok igazoltak.
+- **Tényleges telepített böngészős folyamat:** adminbelépés → tesztfutár → ötnapos tesztmenü → vendégrendelés → adminlista → futár-hozzárendelés → készpénz 2 000 Ft → kártya 3 600 Ft → fizetett, tartozás 0 Ft → teljesített állapot → múltbeli elszámolás → CSV-letöltés. Az adatbázis minden lépés eredményét visszaigazolta.
 
-Új szerveroldali függvények: `kd_rate_limit`, `kd_driver`, `kd_assign`, `kd_payment`, `kd_order_status`, `kd_settle`, `kd_menu`. A pénzügyi és kapcsolódó rendelési műveletek tranzakciós zárolással futnak. Az üzleti változás és az auditbejegyzés együtt mentődik.
+A megtartott szintetikus rendelés: `MENU-261028-D68FFCB2`, összeg 5 600 Ft, két C menü és két leves, teljesen rendezett és teljesített. Az elszámolás pozitív tesztjéhez kizárólag ennek a szintetikus rendelésnek a két befizetési időpontja és hozzárendelési időpontja került 2026-10-27-re. Valódi ügyféladatot vagy pénzmozgást nem módosítottam. Az elszámolás: készpénz 2 000 Ft, kártya 3 600 Ft, tartozás 0 Ft, rendelés 1. A letöltött CSV ugyanazt az 5 600 / 5 600 / 0 Ft eredményt tartalmazta.
 
-Mind a kilenc alkalmazástáblán RLS aktív. Az admin RPC-k végrehajtása csak a szerveroldali `service_role` szerepkörnek engedélyezett. A meglévő `rls_auto_enable()` függvény nyilvános végrehajtási jogait visszavontam. A biztonsági ellenőrzés ezt követően csak a szándékos, policy nélküli RLS-t jelző INFO-kat adta; WARN/ERROR nem maradt. [Az INFO magyarázata](https://supabase.com/docs/guides/database/database-linter?lint=0008_rls_enabled_no_policy).
+A fenti valódi folyamatot a kliens-tesztjelzők bevezetése előtti Preview-verzión ellenőriztem. A külön tesztmód új kiadását a telepítés után még a tényleges Preview-n is ellenőrizni kell; ez a jelentés nem helyettesíti az ellenőrzést.
 
-A teljesítmény-ellenőrzés a frissen létrehozott, üres táblák még nem használt indexeit jelezte INFO-ként; a szükséges indexek megmaradtak.
+## Adatbázis-módosítások
 
-## 5. Javított hibák és akadályok
+Dedikált projekt: `snxlismmgzwpxerenwsv` (a dashboardon általános projektnévvel).
 
-- A külön menüpontok mögött ismétlődő rendeléslista helyére tényleges funkciók kerültek.
-- A minden kérésnél újraküldött adminjelszót szerveroldali munkamenet váltotta fel.
-- A fizetett státusz közvetlen átírása helyett befizetési eseményekből számolt állapot és hátralék működik.
-- A nyilvános rendelő régi, fix dátumhoz kötött menüláthatósága dinamikus lett.
-- A leves korábbi, fogásonként ismétlődő szövegadata helyett külön, pontos adagszám tárolódik.
-- A céges cím és adószám korábban nem jutott el a tárolásig; most eljut és szerveroldalon ellenőrzött.
-- A globális `.shell` CSS-szabály korlátozta az admin szélességét. Ezt az adminon belül felülírtam, a meglévő koncepció megtartásával.
-- A helyi Next-indítás hálózati interfész-felderítési hibáját explicit localhost-kötéssel oldottam meg. A böngészőtesztben szabványos Chromium-telepítés helyett helyi alternatív bináris kellett; a teszt nem igényel hálózati védelmek kikapcsolását.
-- A GitHub parancssori pushhoz nem volt hitelesítés; a kapcsolt GitHub-integrációval mentettem az ágat. Az éles ág nem változott.
-- **Nyitott akadály:** a Vercel telepítéslista és a védett Preview lekérése is 403. A támogatott CLI-alternatívában nincs aktív hitelesítés. Nem kapcsoltam ki a Vercel-védelmet, nem olvastam ki titkos környezeti változót és nem kerültem meg a jogosultságot.
+Alkalmazva:
 
-## 6. Fennmaradó hiányok és üzleti korlátok
+- `20261028012242 / kastelydomb_admin_workflows`: munkamenet, korlátok, audit, céges mezők és tranzakciós műveletek.
+- `20261028012439 / kastelydomb_order_request_fingerprint`: ismételt rendelés felismerése.
+- `kastelydomb_client_test_mode_markers`: `is_test boolean not null default true` az orders, drivers, assignments, payments, settlements, menu_weeks és audit táblán. A meglévő rekordok mind szintetikusak, tesztjelölést kaptak.
 
-1. **Telepített rendszer teljes tesztje és élesítés:** a Vercel-jogosultság helyreállításáig nyitott.
-2. **Online bankkártya és Számlázz.hu:** a korábbi jóváhagyás szerint későbbi integráció; most nem részei a működő rendszernek.
-3. **Visszatérítés, befizetés-visszavonás, lezárt elszámolás korrekciója:** nincs hozzá könyvelési munkafolyamat. Befizetett rendelés lemondását ezért a rendszer megállítja.
-4. **Többnapos rendelés napi diszpécselése:** a jelenlegi adatmodell rendelésenként egy futár-hozzárendelést és egy teljesítési állapotot kezel. Naponta más futár vagy napokra bontott teljesítés külön fejlesztés.
-5. **Ügyfél-CRM:** a névjegyzék rendelési adatokból képzett nézet; önálló ügyféltörzs-szerkesztés és telefonos rendelés kézi felvitele nincs.
-6. **Ünnepnapi és módosítható árak:** a meglévő standard árképzés maradt meg. Ünnepnapi eltérő árhoz külön jóváhagyott szabály kell; automatikus publikálása tiltott.
-7. **Egyéni adminfiókok és szerepkörök:** közös adminjelszavas belépés működik, személyenkénti jogosultságkezelés nincs. Az audit ezért műveletet és érintett rekordot naplóz, nem személyhez kötött operátori azonosítót.
-8. **Automatikus rendelési e-mail és személyesadat-megőrzési automatika:** nincs bekötve. A rendelő nem ígér nem létező automatikus utalási e-mailt. Az adatkezelési megőrzési rendet indulás előtt rendezni kell.
-9. **Nagy adatmennyiség archívuma:** a 10 000 soros védőkorláton túli szerveroldali archívumszűrés külön feladat.
+Új táblák: `kastelydomb_admin_sessions`, `kastelydomb_rate_limits`, `kastelydomb_audit`. Új RPC-k: `kd_rate_limit`, `kd_driver`, `kd_assign`, `kd_payment`, `kd_order_status`, `kd_settle`, `kd_menu`. A művelet és audit egy tranzakcióban mentődik, pénzügyi műveleteknél zárolással.
 
-Ezek miatt a rendszert nem minősítem teljes körűen kész, éles használatra átadott projektnek.
+RLS minden alkalmazástáblán aktív; az admin RPC-k csak szerveroldali `service_role` számára elérhetők. Az `rls_auto_enable()` nyilvános végrehajtási joga visszavonva. A korábbi biztonsági advisor csak a szándékosan policy nélküli RLS INFO-jelzéseit adta; WARN/ERROR nem maradt.
 
-## 7. Pontos következő lépések
+**Megtartott tesztadatok:** egy rendelés, egy futár, egy hozzárendelés, két befizetés, egy elszámolás, egy ötnapos menü és a hozzájuk tartozó audit. A menü jelenleg piszkozat; tesztmód ellenőrzése után újra publikálható. Ezeket a felhasználó legutóbbi kérése alapján nem töröltem.
 
-### Felhasználói teendő
+A `database/finish_client_test_mode_review.sql` kizárólag későbbi, felülvizsgálandó eljárás: ellenőrzi a kevert teszt/valódi kapcsolatokat, célzottan tesztadatokat törölne, majd alapértékeket váltana. **Nem futott le, és szándékosan ROLLBACK-kel végződik.** Az ügyfél elfogadása nélkül nem szabad véglegesíteni.
 
-A Vercel-kapcsolatban engedélyezni kell a **tippanzsolt-8580s-projects** csapatot és a **kastelydomb-kavezo** projektet. A kapcsolt Vercel-fióknak is hozzá kell férnie ezekhez. Ezt a jogosultságot a jelenlegi kapcsolattal nem tudtam helyreállítani. Jelszót vagy kulcsot ne küldjön a beszélgetésbe.
+## Ügyfélteszt és valódi indulás elkülönítése
 
-Üzletileg ellenőrizendő az aktuális heti menü, a standard árak, a rendelési határidők, az induló futáradatok és az adatmegőrzési rend. Az adatbázisban nincs automatikusan élesített mintamenü.
+- `KASTELYDOMB_MODE=test` (hiányzó vagy ismeretlen mód is tesztnek számít).
+- `CLIENT_TEST_ORDERS_ENABLED=true`: csak tesztmódban enged tesztrendelést.
+- `ORDER_INTAKE_ENABLED` production környezetben maradjon kikapcsolva. Tesztmódban ez a kapcsoló nem engedélyez rendelést.
+- Valódi rendelés csak a későbbi explicit `KASTELYDOMB_MODE=production` **és** `ORDER_INTAKE_ENABLED=true` együttesével lehetséges.
+- Az adminjelszó továbbra is szükséges, nem lesz nyilvános adminhozzáférés. A Vercel Production célkörnyezet a tárhelyet jelenti; az alkalmazás üzleti módja ettől függetlenül teszt marad.
 
-### Technikai folytatás a hozzáférés rendezése után
+## Fennmaradó hiányok és korlátok
 
-1. A legfrissebb fejlesztési commit Preview telepítésének azonosítása; a környezeti változók meglétének ellenőrzése titokértékek kiolvasása nélkül.
-2. A Preview és az elkülönített tesztadatokkal használt valódi Supabase összekötésének ellenőrzése. A nyilvános production rendeléskapcsoló maradjon kikapcsolva.
-3. Tényleges belépés/kilépés; hibás belépési korlát; menü mentése/publikálása; vendégoldali rendelés; adminban megjelenés; futár-hozzárendelés; rész- és teljes befizetés; teljesítés; lezárt napi elszámolás; CSV és nyomtatási nézet ellenőrzése.
-4. A tesztrendelések, befizetések és elszámolások tiszta, elkülönített tesztkörnyezetben maradjanak. Éles adatot ne kelljen teszt céljából módosítani vagy törölni.
-5. Az eredmények commitazonosítóval történő dokumentálása után a PR integrálása a `main` ágba és kontrollált production telepítés.
-6. Production ellenőrzés még kikapcsolt rendelésfogadással; majd az elfogadott aktuális menü és árak ellenőrzése után `ORDER_INTAKE_ENABLED=true`, újratelepítés és indulási ellenőrzés.
-7. Hiba esetén az előző ismert jó Vercel-telepítés visszaállítása és a rendelésfogadás kikapcsolása. A hozzáadó adatbázis-migrációkat nem szükséges adatvesztéssel visszabontani.
+1. A nyilvános tárhelyre történő tesztüzemi kiadás és a production admin belépés ellenőrzése még nincs kész. Az adminsecret környezetbővítését az automatikus felülvizsgálat blokkolta; erre célzott felhasználói döntés szükséges.
+2. Online bankkártyás fizetés és Számlázz.hu későbbi integráció, jelenleg nem működik. Az online kártyás rendelést a szerver elutasítja.
+3. Visszatérítés, befizetés-visszavonás, lezárt elszámolás korrekciója nincs. Befizetett rendelés lemondása tiltott.
+4. Egy többnapos rendelés egy futárt és egy teljesítési állapotot kap; napi bontású diszpécselés nincs.
+5. Önálló ügyféltörzs-szerkesztő és telefonos rendelés kézi felvitele nincs.
+6. Egyéni adminfiókok és szerepkörök nincsenek; a közös adminbelépés auditja nem személyhez kötött operátort azonosít.
+7. Automatikus rendelési e-mail és adatmegőrzési automatika nincs. Indulás előtt az adatkezelési rendet rendezni kell.
+8. Ünnepnapi eltérő árképzés és módosítható árlista nincs; a standard árak üzleti ellenőrzése szükséges.
+9. 10 000 rekord fölötti szerveroldali archívumszűrés külön feladat.
+
+A Vercel csatlakozó telepítési API-ja 403/404 hibát adott; a felhasználó engedélyével a Vercel saját webes felületén folytattam. A redeploy MFA-lépését a felhasználó saját maga fejezte be; a Preview Ready állapotát és működését utána ellenőriztem. A Git-push CLI hitelesítés hiányában a kapcsolt GitHub-integrációval történik. Egyik akadálynál sem kapcsoltam ki védelmet vagy olvastam ki titkot.
+
+## Következő lépések
+
+1. Az új tesztmód forrásának mentése a külön ágon, Preview telepítés és tesztjelzés / vendégbeküldés / `is_test=true` tényleges ellenőrzése.
+2. A meglévő `ADMIN_PASSWORD` secret tesztüzemi Production hozzárendelésének célzott jóváhagyása vagy felhasználói beállítása; jelszót nem kell és nem szabad chatbe írni.
+3. Csak a sikeres teszt dokumentálása után PR-integrálás vagy ellenőrzött production kiadás tesztmódban. Publikus `/admin` belépés, vendégrendelés és visszaellenőrzés ugyanott; a kliensnek csak ezután adjuk át kész tesztüzemként.
+4. Ügyfélteszt: menü, árak, határidők, rendelések, futárok, befizetések, kintlévőségek, elszámolás és riport kipróbálása. A tesztadatok megmaradnak; tényleges utalást/kiszállítást ne végezzenek.
+5. Elfogadás után külön jóváhagyás a tesztadatok törlésére és valódi indulásra. Előtte mentés és rekordlista; rendelésfogadás lezárása, aktív munkamenetek visszavonása; a célzott törlési eljárás felülvizsgálata, kevert kapcsolatok ellenőrzése és tranzakciós végrehajtás. Menü is tesztadat, valódi kínálattal kell pótolni.
+6. Valódi árak, menü, futárok és adatkezelés jóváhagyása; tesztalapértékek kikapcsolása, `KASTELYDOMB_MODE=production`, majd `ORDER_INTAKE_ENABLED=true`, új telepítés és indulási próba.
+7. Hiba esetén rendelésfogadás lezárása, előző jó Vercel-telepítés visszaállítása; a hozzáadó adatbázissémát nem kell adatvesztéssel visszabontani.

@@ -10,7 +10,9 @@ Az élesítés feltételeit és a tényleges tesztbizonyítékokat az [átadási
 | `SUPABASE_URL` | A Kastélydomb elkülönített projektjének API URL-je |
 | `SUPABASE_SERVICE_ROLE_KEY` | Kizárólag a szerver által használt Supabase kulcs |
 | `ADMIN_PASSWORD` vagy `ADMIN_PASSWORD_SHA256` | Legalább 16 karakteres egyedi adminjelszó, vagy annak SHA-256 hex kivonata; a kivonat elsőbbséget élvez |
-| `ORDER_INTAKE_ENABLED` | Csak a pontos `true` érték engedélyezi a rendelésfogadást; a tesztek lezárásáig maradjon kikapcsolva |
+| `KASTELYDOMB_MODE` | Ügyfélteszthez `test`; valódi induláskor külön jóváhagyással `production`. Hiányzó/eltérő érték tesztmód. |
+| `CLIENT_TEST_ORDERS_ENABLED` | `true` csak tesztmódban enged tesztrendelést. |
+| `ORDER_INTAKE_ENABLED` | `true` kizárólag explicit production alkalmazásmódban enged valódi rendelést; ügyfélteszt alatt maradjon kikapcsolva. |
 
 Ezeket a Vercel megfelelő Preview/Production környezeteiben kell megadni. Egyik titokhoz se használjon `NEXT_PUBLIC_` előtagot. Kulcsot vagy jelszót ne írjon a forráskódba és ne másoljon hibajegybe. Az adminhoz HTTPS szükséges; a munkamenetsüti production környezetben Secure.
 
@@ -22,6 +24,9 @@ Az eredeti rendelési sémát követik az operatív táblák, majd:
 
 1. `database/kastelydomb_admin_workflows.sql` – munkamenet, sebességkorlát, audit, szerveroldali üzleti műveletek és céges számlázási mezők.
 2. `database/kastelydomb_order_request_fingerprint.sql` – ismételt rendelésbeküldés felismerése.
+3. `database/kastelydomb_client_test_mode.sql` – tesztadat-jelölők. Alapértékük a tesztidőszakban true; a valódi indulás előtt átállítandó.
+
+Az ügyfélteszt adatainak törlése csak külön elfogadás után történhet. A `database/finish_client_test_mode_review.sql` felülvizsgálati minta, szándékosan ROLLBACK-kel zárul; nem automatikus törlőprogram.
 
 Ezek már alkalmazva lettek a fenti projekten. Ne futtassa őket szükségtelenül újra. Új környezetben a meglévő migrációs előzményekkel összevetve, sorrendben telepítse a sémákat.
 

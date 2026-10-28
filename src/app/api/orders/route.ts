@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import {acceptsOrders,isTestMode} from "@/lib/app-mode";
 import { body, db, rpc, hash, sameOrigin } from "@/lib/admin-server";
 import { beforeCutoff, budapestParts, MenuDay } from "@/lib/menu";
 export const dynamic = "force-dynamic";
@@ -18,7 +19,7 @@ export async function POST(req: NextRequest) {
         { error: "Nem engedélyezett kérésforrás." },
         { status: 403 },
       );
-    if (process.env.ORDER_INTAKE_ENABLED !== "true")
+    if (!acceptsOrders())
       return NextResponse.json(
         { error: "Az online rendelésfogadás jelenleg még nem aktív." },
         { status: 503 },
@@ -51,7 +52,7 @@ export async function POST(req: NextRequest) {
     const existing = await db(
       "kastelydomb_orders?id=eq." +
         input.request_id +
-        "&select=order_number,total_huf,request_fingerprint",
+        "&select=order_number,total_huf,request_fingerprint,is_test",
     );
     if (!existing.ok)
       return NextResponse.json(
@@ -69,6 +70,7 @@ export async function POST(req: NextRequest) {
         {
           order_number: previous[0].order_number,
           total_huf: previous[0].total_huf,
+          is_test: previous[0].is_test,
         },
         { status: 200, headers: { "Cache-Control": "no-store" } },
       );
@@ -277,6 +279,7 @@ export async function POST(req: NextRequest) {
         "-" +
         id.slice(0, 8).toUpperCase();
     const data = {
+      is_test:isTestMode(),
       id,
       request_fingerprint: fingerprint,
       order_number,
@@ -304,7 +307,7 @@ export async function POST(req: NextRequest) {
       const retry = await db(
         "kastelydomb_orders?id=eq." +
           id +
-          "&select=order_number,total_huf,request_fingerprint",
+          "&select=order_number,total_huf,request_fingerprint,is_test",
       );
       if (retry.ok) {
         const rows = await retry.json();
@@ -313,6 +316,7 @@ export async function POST(req: NextRequest) {
             {
               order_number: rows[0].order_number,
               total_huf: rows[0].total_huf,
+                is_test:rows[0].is_test,
             },
             { headers: { "Cache-Control": "no-store" } },
           );
@@ -323,7 +327,7 @@ export async function POST(req: NextRequest) {
       );
     }
     return NextResponse.json(
-      { order_number, total_huf: total },
+      { order_number, total_huf: total, is_test:isTestMode() },
       { status: 201, headers: { "Cache-Control": "no-store" } },
     );
   } catch {

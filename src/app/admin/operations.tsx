@@ -2,6 +2,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { MenuDay } from "@/lib/menu";
 type Order = {
+  is_test?: boolean;
   id: string;
   order_number: string;
   customer_name: string;
@@ -213,6 +214,7 @@ export default function Operations({
         "Befizetés (Ft)",
         "Hátralék (Ft)",
         "Státusz",
+        "Tesztadat",
       ],
       ...reportOrders.map((o) => [
         o.order_number,
@@ -222,6 +224,7 @@ export default function Operations({
         paid(o.id),
         debt(o),
         o.status,
+        o.is_test !== false ? "igen" : "nem",
       ]),
     ];
     const content =
