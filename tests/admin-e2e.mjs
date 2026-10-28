@@ -279,6 +279,9 @@ try {
   await page.getByRole("heading", { name: "Kezdőlap", exact: true }).waitFor();
   assert.equal(await page.getByRole("note",{name:"Tesztüzem",exact:true}).isVisible(),true);
   checks.push("Browser login and dashboard");
+  await page.reload();
+  await page.getByRole("heading", { name: "Kezdőlap", exact: true }).waitFor();
+  checks.push("Browser reload restores the server-validated session");
   await page
     .getByRole("button", { name: "Futárok", exact: false })
     .first()
@@ -401,8 +404,6 @@ try {
   );
   checks.push("Order intake: server price, soup quantity, idempotent retry");
   await page.goto(origin + "/admin");
-  await page.getByLabel("Adminjelszó").fill(password);
-  await page.getByRole("button", { name: "Belépés", exact: true }).click();
   await page.getByRole("heading", { name: "Kezdőlap", exact: true }).waitFor();
   assert.equal(
     await page
@@ -434,6 +435,12 @@ try {
     fullPage: true,
   });
   checks.push("Mobile navigation, viewport overflow");
+  await page.getByRole("button", { name: "♙ Admin ▾ Kilépés", exact: true }).click();
+  await page.getByLabel("Adminjelszó").waitFor();
+  await page.reload();
+  await page.getByLabel("Adminjelszó").waitFor();
+  assert.equal(await page.getByRole("heading", { name: "Kezdőlap", exact: true }).count(), 0);
+  checks.push("Browser logout stays signed out after reload");
   assert.deepEqual(errors, []);
   checks.push("No browser runtime errors");
   console.log(JSON.stringify({ passed: checks.length, checks }, null, 2));

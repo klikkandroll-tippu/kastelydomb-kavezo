@@ -34,7 +34,7 @@ Minden alkalmazástábla RLS-védett. Az `anon` és `authenticated` szerepkör n
 
 ## Működés
 
-- Belépés után 8 órás HttpOnly / Secure / SameSite=Strict munkamenet készül. A kijelentkezés törli az adatbázisban tárolt munkamenetet is.
+- Belépés után 8 órás HttpOnly / Secure / SameSite=Strict munkamenet készül. Oldalfrissítéskor a szerver újraellenőrzi a sütit és helyreállítja a belépést. A kijelentkezés törli az adatbázisban tárolt munkamenetet is.
 - A belépési korlát 10 kísérlet / 15 perc; a Vercel megbízható továbbított IP-fejlécét használja, ennek hiányában közös korlátot. A rendelési korlát 30 kísérlet / 15 perc. A kulcsokban az IP csak kivonatként szerepel.
 - A nyers adminjelszó csak a belépési kérésben szerepel; a további API-kérések munkamenetsütit használnak.
 - Futár csak aktív kiszállításhoz rendelhető. Futárhoz kötött befizetés után nem cserélhető másik futárra.

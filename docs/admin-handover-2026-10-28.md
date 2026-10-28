@@ -4,7 +4,7 @@
 
 ## Állapot és elérhetőségek
 
-A működési modulok elkészültek és a telepített Preview → valódi Supabase → admin folyamat is sikeresen tesztelt. A külön ügyféltesztmód helyi ellenőrzése sikeres. A közönség számára elérhető production admin tesztüzemi kiadása még függőben van: a meglévő adminsecret Production környezethez rendelését az automatikus jóváhagyási ellenőrzés blokkolta. A hitelesítési védelmet nem kapcsoltam ki és a korlátozást nem kerültem meg. A `main` ág az átadás ezen pontján változatlan.
+A működési modulok elkészültek és a telepített Preview → valódi Supabase → admin folyamat is sikeresen tesztelt. A külön ügyféltesztmód helyi és telepített Preview-ellenőrzése sikeres. A közönség számára elérhető production admin tesztüzemi kiadása még függőben van: a meglévő adminsecret Production környezethez rendelését az automatikus jóváhagyási ellenőrzés blokkolta. A hitelesítési védelmet nem kapcsoltam ki és a korlátozást nem kerültem meg. A `main` ág az átadás ezen pontján változatlan.
 
 - [GitHub projekt](https://github.com/klikkandroll-tippu/kastelydomb-kavezo)
 - [Fejlesztési ág](https://github.com/klikkandroll-tippu/kastelydomb-kavezo/tree/feature/menu-order-admin-20261027)
@@ -21,7 +21,7 @@ A korábbi teljes, telepített működési teszt a `3617225f8402f1eafe445ba66f0a
 
 | Modul | Működés és ellenőrzés |
 | --- | --- |
-| Adminbelépés | Szerveroldali ellenőrzés, 8 órás visszavonható munkamenet, HttpOnly/Secure/SameSite Strict süti, sebességkorlát, eredetellenőrzés. Valódi Preview-belépés sikeres; negatív esetek helyi API-teszten. |
+| Adminbelépés | Szerveroldali ellenőrzés, 8 órás visszavonható, oldalfrissítéskor szerveren ellenőrzött és helyreálló munkamenet, HttpOnly/Secure/SameSite Strict süti, sebességkorlát, eredetellenőrzés. Valódi Preview-belépés sikeres; negatív esetek helyi API-teszten. |
 | Rendelések | Adatbázisból betöltött lista, keresés, állapot és részletek, nyomtatható rendeléslap; valódi rendelés megjelent az adminban. |
 | Futárok és kiszállítás | Futár létrehozás/szerkesztés/aktivitás, hozzárendelés és teljesítés; valódi UI → DB teszt sikeres. |
 | Befizetések | Rész- és teljes összeg, készpénz/kártya/céges átutalás, idempotencia, túlfizetés tiltása, automatikus egyenleg; valódi készpénz- és kártyateszt sikeres. |
@@ -39,13 +39,13 @@ A korábbi teljes, telepített működési teszt a `3617225f8402f1eafe445ba66f0a
 - `npm test`: **15/15 sikeres**. Budapest szerinti határidők, téli/nyári idő, riporthatárok, menüstruktúra és a teszt/valódi rendelési kapcsolók elkülönítése.
 - `npm run lint`: sikeres, 0 hiba.
 - `npm run build`: sikeres, TypeScript-ellenőrzéssel.
-- `npm run test:e2e`: **27/27 sikeres**, valódi production Next-kiszolgálóval és elkülönített PostgREST tesztkiszolgálóval. Belépés, jogosultság, eredetvédelem, süti, kilépés, futár, hozzárendelés, részfizetés, ügyfél, riport, CSV, menüpublikálás, vendégoldal, negatív rendelési esetek, idempotencia, tesztjelölés, mobil és JavaScript-hibák ellenőrzése.
+- `npm run test:e2e`: **29/29 sikeres**, valódi production Next-kiszolgálóval és elkülönített PostgREST tesztkiszolgálóval. Belépés, jogosultság, eredetvédelem, süti, kilépés, futár, hozzárendelés, részfizetés, ügyfél, riport, CSV, menüpublikálás, vendégoldal, negatív rendelési esetek, idempotencia, tesztjelölés, mobil és JavaScript-hibák ellenőrzése.
 - `tests/database-workflows.sql`: valódi Supabase-en sikeres, a végén `ROLLBACK`; tranzakciós pénzügyi invariánsok és szerepkör-korlátok igazoltak.
 - **Tényleges telepített böngészős folyamat:** adminbelépés → tesztfutár → ötnapos tesztmenü → vendégrendelés → adminlista → futár-hozzárendelés → készpénz 2 000 Ft → kártya 3 600 Ft → fizetett, tartozás 0 Ft → teljesített állapot → múltbeli elszámolás → CSV-letöltés. Az adatbázis minden lépés eredményét visszaigazolta.
 
 A megtartott szintetikus rendelés: `MENU-261028-D68FFCB2`, összeg 5 600 Ft, két C menü és két leves, teljesen rendezett és teljesített. Az elszámolás pozitív tesztjéhez kizárólag ennek a szintetikus rendelésnek a két befizetési időpontja és hozzárendelési időpontja került 2026-10-27-re. Valódi ügyféladatot vagy pénzmozgást nem módosítottam. Az elszámolás: készpénz 2 000 Ft, kártya 3 600 Ft, tartozás 0 Ft, rendelés 1. A letöltött CSV ugyanazt az 5 600 / 5 600 / 0 Ft eredményt tartalmazta.
 
-A fenti valódi folyamatot a kliens-tesztjelzők bevezetése előtti Preview-verzión ellenőriztem. A külön tesztmód új kiadását a telepítés után még a tényleges Preview-n is ellenőrizni kell; ez a jelentés nem helyettesíti az ellenőrzést.
+A fenti valódi folyamatot a kliens-tesztjelzők bevezetése előtti Preview-verzión ellenőriztem. Az új tesztmód is ténylegesen ellenőrizve a `a6fdd25db8f7a243fa6daa5a4904dc43c45e3231` commit Preview-ján, [FmXqAhdxtpvNf4ofRE8eLMkGHCSH telepítés](https://vercel.com/tippanzsolt-8580s-projects/kastelydomb-kavezo/FmXqAhdxtpvNf4ofRE8eLMkGHCSH): a `/api/system-status` válasza tesztmódot és engedélyezett tesztrendelést adott; az oldalon és az admin belépésen megjelent a tesztjelzés. Céges átutalás választásakor valódi számlaszám helyett tesztfigyelmeztetés látszott. A `MENU-261028-C288CCF9` rendelés 2 800 Ft összeggel sikeresen mentődött, az adminban megjelent, a Supabase `is_test=true`, `status=new`, `payment_status=unpaid` értékeket igazolt. Az adatokat megtartottam.
 
 ## Adatbázis-módosítások
 
@@ -55,13 +55,13 @@ Alkalmazva:
 
 - `20261028012242 / kastelydomb_admin_workflows`: munkamenet, korlátok, audit, céges mezők és tranzakciós műveletek.
 - `20261028012439 / kastelydomb_order_request_fingerprint`: ismételt rendelés felismerése.
-- `kastelydomb_client_test_mode_markers`: `is_test boolean not null default true` az orders, drivers, assignments, payments, settlements, menu_weeks és audit táblán. A meglévő rekordok mind szintetikusak, tesztjelölést kaptak.
+- `20261028025934 / kastelydomb_client_test_mode_markers`: `is_test boolean not null default true` az orders, drivers, assignments, payments, settlements, menu_weeks és audit táblán. A meglévő rekordok mind szintetikusak, tesztjelölést kaptak.
 
 Új táblák: `kastelydomb_admin_sessions`, `kastelydomb_rate_limits`, `kastelydomb_audit`. Új RPC-k: `kd_rate_limit`, `kd_driver`, `kd_assign`, `kd_payment`, `kd_order_status`, `kd_settle`, `kd_menu`. A művelet és audit egy tranzakcióban mentődik, pénzügyi műveleteknél zárolással.
 
 RLS minden alkalmazástáblán aktív; az admin RPC-k csak szerveroldali `service_role` számára elérhetők. Az `rls_auto_enable()` nyilvános végrehajtási joga visszavonva. A korábbi biztonsági advisor csak a szándékosan policy nélküli RLS INFO-jelzéseit adta; WARN/ERROR nem maradt.
 
-**Megtartott tesztadatok:** egy rendelés, egy futár, egy hozzárendelés, két befizetés, egy elszámolás, egy ötnapos menü és a hozzájuk tartozó audit. A menü jelenleg piszkozat; tesztmód ellenőrzése után újra publikálható. Ezeket a felhasználó legutóbbi kérése alapján nem töröltem.
+**Megtartott tesztadatok:** két rendelés, egy futár, egy hozzárendelés, két befizetés, egy elszámolás, egy ötnapos menü és a hozzájuk tartozó audit. A tesztmenü újra publikálva az ügyfélpróbához. Ezeket a felhasználó legutóbbi kérése alapján nem töröltem.
 
 A `database/finish_client_test_mode_review.sql` kizárólag későbbi, felülvizsgálandó eljárás: ellenőrzi a kevert teszt/valódi kapcsolatokat, célzottan tesztadatokat törölne, majd alapértékeket váltana. **Nem futott le, és szándékosan ROLLBACK-kel végződik.** Az ügyfél elfogadása nélkül nem szabad véglegesíteni.
 
@@ -72,6 +72,7 @@ A `database/finish_client_test_mode_review.sql` kizárólag későbbi, felülviz
 - `ORDER_INTAKE_ENABLED` production környezetben maradjon kikapcsolva. Tesztmódban ez a kapcsoló nem engedélyez rendelést.
 - Valódi rendelés csak a későbbi explicit `KASTELYDOMB_MODE=production` **és** `ORDER_INTAKE_ENABLED=true` együttesével lehetséges.
 - Az adminjelszó továbbra is szükséges, nem lesz nyilvános adminhozzáférés. A Vercel Production célkörnyezet a tárhelyet jelenti; az alkalmazás üzleti módja ettől függetlenül teszt marad.
+- A `KASTELYDOMB_MODE=test` és `CLIENT_TEST_ORDERS_ENABLED=true` Config változók Production és Preview célkörnyezetre mentve és a beállítási felületen ellenőrizve. Az adminsecret továbbra is csak Preview-ra szól.
 
 ## Fennmaradó hiányok és korlátok
 

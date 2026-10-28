@@ -128,6 +128,24 @@ export default function AdminPage() {
     }
   }, [api, authed, password]);
   useEffect(() => {
+    let cancelled = false;
+    async function resume() {
+      try {
+        const r = await fetch("/api/admin/session", { cache: "no-store" });
+        const session = await r.json();
+        if (!r.ok || !session.authenticated) return;
+        const d = await api();
+        if (cancelled) return;
+        setOrders(d.orders || []);
+        setAuthed(true);
+      } catch {
+        // Keep the login form available when a session cannot be restored.
+      }
+    }
+    void resume();
+    return () => { cancelled = true; };
+  }, [api]);
+  useEffect(() => {
     if (!authed) return;
     const t = setInterval(
       () =>
