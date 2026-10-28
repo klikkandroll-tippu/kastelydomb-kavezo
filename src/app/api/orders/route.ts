@@ -17,6 +17,7 @@ function hungaryNow(){return new Date(new Date().toLocaleString("en-US",{timeZon
 function cutoffFor(day:string,fulfillment:string){const d=new Date(day+"T00:00:00"); const today=hungaryNow();const at=new Date(d);at.setHours(fulfillment==="delivery"?9:14,fulfillment==="delivery"?0:30,0,0);return today<at;}
 const text=(v:unknown,max=200)=>typeof v==="string"?v.trim().slice(0,max):"";
 export async function POST(req:NextRequest){
+ if(process.env.ORDER_INTAKE_ENABLED!=="true")return NextResponse.json({error:"Az online rendelésfogadás jelenleg még nem aktív."},{status:503});
  if(!process.env.SUPABASE_URL||!process.env.SUPABASE_SERVICE_ROLE_KEY)return NextResponse.json({error:"A rendelésfogadás még nincs beállítva."},{status:503});
  const size=Number(req.headers.get("content-length")||0);if(size>16000)return NextResponse.json({error:"Túl nagy rendelés."},{status:413});
  const input=await req.json().catch(()=>null);if(!input||typeof input!=="object"||Array.isArray(input))return NextResponse.json({error:"Hibás kérés."},{status:400});
