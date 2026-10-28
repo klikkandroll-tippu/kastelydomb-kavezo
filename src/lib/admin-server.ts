@@ -14,5 +14,5 @@ export function configError(){
 }
 export async function db(path:string,options:RequestInit={}){
  const url=process.env.SUPABASE_URL!.replace(/\/$/,"")+"/rest/v1/"+path;
- return fetch(url,{...options,headers:{"apikey":process.env.SUPABASE_SERVICE_ROLE_KEY!,"Authorization":"Bearer "+process.env.SUPABASE_SERVICE_ROLE_KEY!,"Content-Type":"application/json","Prefer":"return=representation",...(options.headers||{})},cache:"no-store"});
+ return fetch(url,{...options,headers:{"apikey":process.env.SUPABASE_SERVICE_ROLE_KEY!,...(process.env.SUPABASE_SERVICE_ROLE_KEY!.startsWith("eyJ")?{"Authorization":"Bearer "+process.env.SUPABASE_SERVICE_ROLE_KEY!}:{}),"Content-Type":"application/json","Prefer":"return=representation",...(options.headers||{})},cache:"no-store"});
 }
