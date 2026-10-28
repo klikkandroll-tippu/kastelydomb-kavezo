@@ -66,8 +66,8 @@ function switchWeek(i){activeWeek=i;selected=WEEK_SELECTIONS[i];draw()}
 const radio=n=>document.querySelector(`input[name="${n}"]:checked`).value;
 const dishCount=s=>s.A+s.B+s.C;
 function counter(i,k,n){return `<div class="qty" role="group" aria-label="${esc(activeWeekData().days[i].label)} ${k==='soup'?'leves':k+' mennyisége'}"><button type="button" data-op="minus" data-i="${i}" data-k="${k}" aria-label="Csökkentés">−</button><input type="number" inputmode="numeric" min="0" max="5" step="1" value="${n}" data-i="${i}" data-k="${k}" aria-label="Adagszám"><button type="button" data-op="plus" data-i="${i}" data-k="${k}" aria-label="Növelés">+</button></div>`}
-function draw(){let week=activeWeekData(),plan=radio('plan'),ful=radio('fulfillment'),now=nowHungary(),cutoff=new Date('2026-10-23T14:30:00');const currentVisible=now<cutoff;const nextVisible=true; // A jóváhagyott tesztben mindkét feltöltött hét látható október 21-én is.
-const visibleWeeks=WEEKS.map((w,i)=>({w,i})).filter(({i})=>(i===0?currentVisible:nextVisible));
+function draw(){let week=activeWeekData(),plan=radio('plan'),ful=radio('fulfillment');const today=new Intl.DateTimeFormat('sv-SE',{timeZone:'Europe/Budapest'}).format(new Date());
+let visibleWeeks=WEEKS.map((w,i)=>({w,i})).filter(({w})=>w.days[w.days.length-1].date>=today).slice(0,5);if(!visibleWeeks.length)visibleWeeks=WEEKS.map((w,i)=>({w,i})).slice(-1);
 if(!visibleWeeks.some(({i})=>i===activeWeek)){activeWeek=visibleWeeks[0]?.i??0;selected=WEEK_SELECTIONS[activeWeek];week=activeWeekData();}
 const formatPeriod=p=>{const m=p.match(/(\d{4})\.\s*([a-záéíóöőúüű]+)\s+(\d+)[–-](\d+)/i);return m?m[2].charAt(0).toLocaleUpperCase('hu-HU')+m[2].slice(1)+' '+m[3]+'–'+m[4]+'.':p};
 $('weekTabs').innerHTML=Array.from({length:5},(_,pos)=>{const entry=visibleWeeks[pos];return entry?`<button type="button" class="week-slot ${entry.i===activeWeek?'is-active':'is-inactive'}" role="tab" data-week="${entry.i}" aria-selected="${entry.i===activeWeek}" title="${esc(entry.w.period)}">${esc(formatPeriod(entry.w.period))}</button>`:`<span class="week-slot is-empty" aria-hidden="true"></span>`}).join('');

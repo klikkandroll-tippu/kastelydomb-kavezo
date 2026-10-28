@@ -68,3 +68,22 @@ export function beforeCutoff(
     (t.date === day && t.minutes < (fulfillment === "delivery" ? 540 : 870))
   );
 }
+
+export function inPeriod(
+  created: string,
+  period: "daily" | "weekly" | "monthly",
+  now = new Date(),
+) {
+  const day = budapestParts(new Date(created)).date;
+  const today = budapestParts(now).date;
+  if (period === "daily") return day === today;
+  if (period === "monthly") return day.slice(0, 7) === today.slice(0, 7);
+  const monday = new Date(today + "T00:00:00Z");
+  monday.setUTCDate(monday.getUTCDate() - ((monday.getUTCDay() + 6) % 7));
+  const end = new Date(monday);
+  end.setUTCDate(end.getUTCDate() + 6);
+  return (
+    day >= monday.toISOString().slice(0, 10) &&
+    day <= end.toISOString().slice(0, 10)
+  );
+}

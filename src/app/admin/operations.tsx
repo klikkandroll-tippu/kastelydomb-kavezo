@@ -1,5 +1,5 @@
 "use client";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import type { MenuDay } from "@/lib/menu";
 type Order = {
   id: string;
@@ -176,10 +176,13 @@ export default function Operations({
       setBusy(false);
     }
   };
-  const paid = (id: string) =>
-    state.payments
-      .filter((p) => p.order_id === id)
-      .reduce((n, p) => n + p.amount_huf, 0);
+  const paymentTotals = useMemo(() => {
+    const sums = new Map<string, number>();
+    for (const p of state.payments)
+      sums.set(p.order_id, (sums.get(p.order_id) || 0) + p.amount_huf);
+    return sums;
+  }, [state.payments]);
+  const paid = (id: string) => paymentTotals.get(id) || 0;
   const debt = (o: Order) => Math.max(0, o.total_huf - paid(o.id));
   const driverName = (id: string | null) =>
     state.drivers.find((d) => d.id === id)?.name || "Étterem";

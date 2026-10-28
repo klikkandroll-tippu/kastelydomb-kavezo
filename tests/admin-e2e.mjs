@@ -2,6 +2,7 @@
 // Financial SQL invariants are separately tested in database-workflows.sql on Supabase.
 import assert from "node:assert/strict";
 import http from "node:http";
+import { mkdirSync } from "node:fs";
 import { spawn } from "node:child_process";
 import { createRequire } from "node:module";
 import { randomUUID } from "node:crypto";
@@ -17,6 +18,12 @@ globalThis.fetch = (url, options = {}) =>
 const origin = "http://localhost:3100",
   password = "test-password-for-local-only";
 const id = randomUUID();
+const future = new Date();
+future.setUTCDate(future.getUTCDate() + 14 + ((8 - future.getUTCDay()) % 7));
+const menuStart = future.toISOString().slice(0, 10);
+const artifacts =
+  process.env.TEST_ARTIFACT_DIR || process.cwd() + "/test-results";
+mkdirSync(artifacts, { recursive: true });
 const state = {
   orders: [
     {
@@ -131,6 +138,7 @@ const db = http.createServer(async (req, res) => {
         ),
       );
       if (req.method === "POST") {
+        b.created_at ||= new Date().toISOString();
         rows.push(b);
         out = [b];
       } else if (req.method === "DELETE") {
@@ -250,12 +258,16 @@ try {
   r = await fetch(origin + "/api/admin/orders", { headers });
   assert.equal(r.status, 401);
   checks.push("Logout revokes session");
-  browser = await chromium.launch({ headless: true, args: ["--no-sandbox"] });
+  browser = await chromium.launch({
+    executablePath: process.env.TEST_CHROMIUM_EXECUTABLE || undefined,
+    headless: true,
+    args: ["--no-sandbox"],
+  });
   const page = await browser.newPage({
     viewport: { width: 1440, height: 1000 },
   });
   const errors = [];
-  page.on("pageerror", (e) => errors.push(e.message));
+  page.on("pageerror", (e) => errors.push(e.stack));
   await page.goto(origin + "/admin");
   await page.getByLabel("Adminjelszó").fill(password);
   await page.getByRole("button", { name: "Belépés", exact: true }).click();
@@ -315,7 +327,7 @@ try {
     .getByRole("button", { name: "Étlap és menük", exact: false })
     .first()
     .click();
-  await page.getByLabel("Hét kezdete (hétfő)").fill("2026-11-02");
+  await page.getByLabel("Hét kezdete (hétfő)").fill(menuStart);
   for (const group of await page.locator("fieldset").all()) {
     const inputs = group.locator("input");
     for (let i = 0; i < 4; i++)
@@ -328,10 +340,10 @@ try {
   checks.push("Five-day menu save and publish");
   r = await fetch(origin + "/api/menu");
   const menu = await r.json();
-  assert.equal(menu.weeks[0].week_start, "2026-11-02");
+  assert.equal(menu.weeks[0].week_start, menuStart);
   checks.push("Published menu public API");
   await page.goto(origin + "/napi-menu");
-  await page.getByRole("tab", { name: /2026-11-02/ }).waitFor();
+  await page.getByRole("tab", { name: new RegExp(menuStart) }).waitFor();
   checks.push("Published menu rendered in existing public ordering screen");
   const request = {
     request_id: randomUUID(),
@@ -341,8 +353,19 @@ try {
     fulfillment: "pickup",
     payment_method: "cash_on_pickup",
     plan: "no",
-    days: [{ date: "2026-11-02", A: 0, B: 0, C: 2, soup: 2 }],
+    total_huf:1,
+    delivery_address:"Nem kiszállítási cím",
+    days: [{ date: menuStart, A: 0, B: 0, C: 2, soup: 2 }],
   };
+  for(const [name,patch] of [
+    ["Online card rejected",{payment_method:"online_card"}],
+    ["Private transfer rejected",{payment_method:"company_transfer"}],
+    ["Missing company billing rejected",{customer_type:"company",company_name:"Teszt Kft."}],
+    ["Soup-only order rejected",{days:[{date:menuStart,A:0,B:0,C:0,soup:1}]}],
+    ["C menu without soup rejected",{days:[{date:menuStart,A:0,B:0,C:1,soup:0}]}],
+    ["Single-day subscription rejected",{plan:"yes"}],
+    ["Unknown menu date rejected",{days:[{date:"1900-01-01",A:0,B:0,C:1,soup:1}]}]
+  ]) {const invalid=await fetch(origin+"/api/orders",{method:"POST",headers:{Origin:origin,"Content-Type":"application/json"},body:JSON.stringify({...request,...patch,request_id:randomUUID()})});assert.equal(invalid.status,400,name);checks.push(name)}
   r = await fetch(origin + "/api/orders", {
     method: "POST",
     headers: { Origin: origin, "Content-Type": "application/json" },
@@ -351,6 +374,7 @@ try {
   assert.equal(r.status, 201);
   let order = await r.json();
   assert.equal(order.total_huf, 5600);
+  assert.equal(state.orders.find(x=>x.id===request.request_id).delivery_address,null);
   assert.equal(
     state.orders
       .find((x) => x.id === request.request_id)
@@ -372,8 +396,14 @@ try {
   await page.getByLabel("Adminjelszó").fill(password);
   await page.getByRole("button", { name: "Belépés", exact: true }).click();
   await page.getByRole("heading", { name: "Kezdőlap", exact: true }).waitFor();
+  assert.equal(
+    await page
+      .locator(".kd-admin .shell")
+      .evaluate((el) => el.getBoundingClientRect().left),
+    0,
+  );
   await page.screenshot({
-    path: "/tmp/kastelydomb-admin-desktop.png",
+    path: artifacts + "/admin-desktop.png",
     fullPage: true,
   });
   await page.setViewportSize({ width: 390, height: 844 });
@@ -388,8 +418,11 @@ try {
     ),
     true,
   );
+  await page.waitForFunction(
+    () => document.querySelector(".sidebar").getBoundingClientRect().right <= 0,
+  );
   await page.screenshot({
-    path: "/tmp/kastelydomb-admin-mobile.png",
+    path: artifacts + "/admin-mobile.png",
     fullPage: true,
   });
   checks.push("Mobile navigation, viewport overflow");

@@ -273,7 +273,7 @@ export async function POST(req: NextRequest) {
     const id = input.request_id,
       order_number =
         "MENU-" +
-        new Date().toISOString().slice(2, 10).replace(/-/g, "") +
+        budapestParts().date.slice(2).replace(/-/g, "") +
         "-" +
         id.slice(0, 8).toUpperCase();
     const data = {
@@ -284,11 +284,11 @@ export async function POST(req: NextRequest) {
       customer_phone,
       customer_email: customer_email || null,
       customer_type,
-      company_name: company_name || null,
-      company_address: company_address || null,
-      tax_number: tax_number || null,
+      company_name: customer_type === "company" ? company_name : null,
+      company_address: customer_type === "company" ? company_address : null,
+      tax_number: customer_type === "company" ? tax_number : null,
       fulfillment,
-      delivery_address: delivery_address || null,
+      delivery_address: fulfillment === "delivery" ? delivery_address : null,
       payment_method,
       payment_status: "unpaid",
       status: "new",

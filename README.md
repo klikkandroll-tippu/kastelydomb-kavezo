@@ -42,3 +42,10 @@ A `public/images` mappában lévő éttermi, rendezvény- és esküvői fotók a
 - A heti menü és az eseményblokk jelenleg tartalmi mintát tartalmaz; élesítés előtt aktuális adatokkal töltendő.
 - A kapcsolatfelvételi űrlap tervezeti bemutató módban működik. Éles küldéshez e-mail-szolgáltatás vagy saját API-végpont szükséges.
 - A szolgáltatáskártyák később külön landing oldalakra köthetők.
+
+## Adminisztrációs rendszer
+
+A rendelési admin fejlesztése a `feature/menu-order-admin-20261027` ágon található.
+Részletes állapot, tesztbizonyíték, nyitott feladatok és élesítési feltételek:
+[2026. október 28-i átadási jelentés](docs/admin-handover-2026-10-28.md).
+Üzemeltetés és helyi tesztek: [admin-setup](docs/admin-setup.md).
