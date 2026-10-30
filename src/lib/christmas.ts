@@ -1,0 +1,2 @@
+export const CHRISTMAS_PRODUCTS = [{id:'szarnyas',name:'Szárnyas tál',price:17000},{id:'malac',name:'Malac tál',price:17000},{id:'vega',name:'Vega tál',price:15000},{id:'halaszle',name:'Halászlé pontyszelettel',price:3000},{id:'rantott-ponty',name:'Egyszemélyes rántottponty-tál',price:4300},{id:'hidegtal',name:'Egyszemélyes hidegtál',price:8000},{id:'salata',name:'Hideg saláta',price:600,min:5}] as const;
+export type ChristmasItem={id:string;name:string;quantity:number;unit_price_huf:number;line_total_huf:number};
