@@ -23,6 +23,7 @@ if(input.consent!==true)return fail("Az adatkezelési tájékoztató elfogadása
 if(!Array.isArray(input.items)||!input.items.length||input.items.length>CHRISTMAS_PRODUCTS.length)return fail("Üres vagy hibás kosár.",400);
 const unique=new Set<string>();let total=0;const items:ChristmasItem[]=[];
 for(const line of input.items){if(!line||typeof line.id!=="string"||unique.has(line.id))return fail("Hibás terméksor.",400);unique.add(line.id);const p=CHRISTMAS_PRODUCTS.find(p=>p.id===line.id);if(!p||!Number.isInteger(line.quantity)||line.quantity<1||line.quantity>99)return fail("Hibás mennyiség.",400);if("min" in p&&line.quantity<p.min)return fail("Hideg salátából minimum 5 adag rendelhető.",400);const amount=p.price*line.quantity;total+=amount;items.push({id:p.id,name:p.name,quantity:line.quantity,unit_price_huf:p.price,line_total_huf:amount});}
+if((items.find(i=>i.id==="halaszle-belsoseg")?.quantity||0)>(items.find(i=>i.id==="halaszle")?.quantity||0))return fail("A belsőséges adagok száma nem lehet több a halászlé adagjainál.",400);
 if(total>1000000)return fail("Túl nagy rendelés.",400);
 const fp=sha(JSON.stringify({name,phone,email,address:fulfillment==="delivery"?address:"",notes,fulfillment,payment,items}));
 const existing=await db("kastelydomb_christmas_orders?id=eq."+id+"&select=order_number,request_fingerprint,total_huf");
