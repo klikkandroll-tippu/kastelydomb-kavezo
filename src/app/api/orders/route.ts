@@ -326,6 +326,42 @@ export async function POST(req: NextRequest) {
         { status: 502 },
       );
     }
+    // Preview-only Zapier integration. Never send a test order to a real guest.
+    // The database write above is authoritative; no webhook on retries.
+    if (isTestMode() && process.env.MENU_ZAPIER_ENABLED === "true") {
+      const hook = process.env.MENU_ZAPIER_WEBHOOK_URL;
+      if (hook && hook.startsWith("https://hooks.zapier.com/hooks/catch/")) {
+        const testEmail = "tippanzsolt@gmail.com";
+        const qrValue = "KASTELYDOMB:MENU:" + id;
+        const payload = {
+          event: "menu.order.created",
+          is_test: true,
+          order_id: id,
+          order_number,
+          customer_name,
+          customer_email: testEmail,
+          original_recipient_suppressed: true,
+          fulfillment,
+          delivery_address: fulfillment === "delivery" ? delivery_address : "",
+          payment_method,
+          items,
+          total_huf: total,
+          qr_value: qrValue,
+          qr_url: "https://api.qrserver.com/v1/create-qr-code/?size=520x520&margin=16&data=" + encodeURIComponent(qrValue)
+        };
+        try {
+          const sent = await fetch(hook, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+            signal: AbortSignal.timeout(8000)
+          });
+          if (!sent.ok) console.error("MENU_ZAPIER_WEBHOOK_HTTP_ERROR", sent.status, order_number);
+        } catch {
+          console.error("MENU_ZAPIER_WEBHOOK_REQUEST_FAILED", order_number);
+        }
+      }
+    }
     // The order has been persisted. Mail failure must not duplicate or roll back it.
     // Explicitly enable only after verifying SMTP/Resend settings and delivery.
     if (process.env.MENU_EMAIL_ENABLED === "true" && customer_email) {
