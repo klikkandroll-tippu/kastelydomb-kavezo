@@ -326,6 +326,32 @@ export async function POST(req: NextRequest) {
         { status: 502 },
       );
     }
+    // The order has been persisted. Mail failure must not duplicate or roll back it.
+    // Explicitly enable only after verifying SMTP/Resend settings and delivery.
+    if (process.env.MENU_EMAIL_ENABLED === "true" && customer_email) {
+      const key = process.env.RESEND_API_KEY;
+      const from = process.env.MENU_EMAIL_FROM;
+      const is_test = isTestMode();
+      const recipient = is_test ? "tippanzsolt@gmail.com" : customer_email;
+      if (key && from) {
+        const esc = (v: string) => v.replace(/[&<>"']/g, c => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[c]!));
+        const ft = (v: number) => new Intl.NumberFormat("hu-HU").format(v) + " Ft";
+        const fulfillmentName = fulfillment === "delivery" ? "Kiszállítás" : fulfillment === "dine_in" ? "Helyben fogyasztás" : "Elvitel";
+        const paymentName = payment_method === "card_on_pickup" ? "Bankkártya az átvételkor" : payment_method === "company_transfer" ? "Céges átutalás" : "Készpénz az átvételkor";
+        const rows = items.map(i => "<tr><td style='padding:9px 6px;border-bottom:1px solid #eee4d8'>" + esc(i.date) + "</td><td style='padding:9px 6px;border-bottom:1px solid #eee4d8'>" + esc(i.menu==="soup"?"Leves":i.menu+" menü") + " — " + esc(i.dish) + "</td><td style='padding:9px 6px;border-bottom:1px solid #eee4d8;text-align:right'>" + i.quantity + " adag</td></tr>").join("");
+        const qrValue = "KASTELYDOMB:MENU:" + id;
+        const qrUrl = "https://api.qrserver.com/v1/create-qr-code/?size=520x520&margin=16&data=" + encodeURIComponent(qrValue);
+        const html = "<div style='background:#f5f1e9;padding:18px 10px;font-family:Arial,sans-serif;color:#403328'><table role='presentation' style='width:100%;max-width:600px;margin:auto;background:#fff;border-collapse:collapse'><tr><td style='background:#403328;color:white;text-align:center;padding:26px 18px'><strong style='font-size:22px'>Kastélydomb Kávézó és Étterem</strong><p>Napi menü – rendelési összesítő</p></td></tr><tr><td style='padding:24px 18px'><h2>Rendelési igényét rögzítettük</h2><p>Kedves " + esc(customer_name) + "! Rendelési igényét fogadtuk. Az étterem külön igazolja vissza az elfogadását.</p><p><strong>Rendelésazonosító:</strong><br><span style='display:inline-block;white-space:nowrap;font-weight:bold'>" + esc(order_number) + "</span></p><p><strong>Átvétel módja:</strong> " + esc(fulfillmentName) + (fulfillment === "delivery" ? "<br><strong>Kiszállítási cím:</strong> " + esc(delivery_address) : "") + "<br><strong>Fizetés:</strong> " + esc(paymentName) + "</p><h3>Rendelési összesítő</h3><table role='presentation' style='width:100%;border-collapse:collapse;font-size:13px'>" + rows + "</table><p style='font-size:19px;text-align:right'><strong>Összesen: " + esc(ft(total)) + "</strong></p><div style='background:#faf7f0;text-align:center;padding:20px 8px'><h3>QR-kód az átvételhez</h3><img src='" + esc(qrUrl) + "' alt='Rendelés QR-kódja' width='480' height='480' style='display:block;width:100%;max-width:480px;height:auto;margin:auto'><p>" + esc(order_number) + "</p><p>Kérjük, őrizze meg ezt az e-mailt! Rendelése átvételekor mutassa be a QR-kódot munkatársunknak.</p></div>" + (is_test ? "<p style='font-size:12px'>TESZT – a levél nem a vendégnek lett elküldve.</p>" : "") + "</td></tr><tr><td style='background:#403328;color:white;text-align:center;padding:16px'>Kastélydomb Kávézó és Étterem · Várpalota</td></tr></table></div>";
+        try {
+          await fetch("https://api.resend.com/emails", {
+            method: "POST",
+            headers: { Authorization: "Bearer " + key, "Content-Type": "application/json" },
+            body: JSON.stringify({ from, to: [recipient], subject: (is_test?"[TESZT] ":"") + "Kastélydomb – napi menürendelés – " + order_number, html }),
+            signal: AbortSignal.timeout(8000)
+          });
+        } catch { /* Persisted order remains available for manual follow-up. */ }
+      }
+    }
     return NextResponse.json(
       { order_number, total_huf: total, is_test:isTestMode() },
       { status: 201, headers: { "Cache-Control": "no-store" } },
