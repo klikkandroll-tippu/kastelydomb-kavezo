@@ -340,11 +340,15 @@ export async function POST(req: NextRequest) {
         const byDay = new Map<string, typeof items>();
         for (const item of items) byDay.set(item.date, [...(byDay.get(item.date) || []), item]);
         const dayCardsHtml = [...byDay.entries()].map(([date, lines]) =>
-          "<div style='margin:0 0 14px;padding:16px;background:#faf7f0;border:1px solid #e8dccb;border-radius:10px'>" +
-          "<div style='font-size:17px;font-weight:bold;color:#403328;margin-bottom:12px'>" + htmlEscape(huDate(date)) + "</div>" +
-          lines.map(line => "<div style='padding:8px 0;border-top:1px solid #e8dccb;font-size:15px;line-height:1.5'>" +
-            "<strong>" + htmlEscape(line.menu === "soup" ? "Leves" : line.menu + " menü") + "</strong>: " +
-            htmlEscape(line.dish) + "<div style='font-weight:bold;margin-top:3px'>" + line.quantity + " adag</div></div>").join("") + "</div>"
+          "<div style='margin:0 0 18px;border:1px solid #e8dccb;border-radius:10px;overflow:hidden'>" +
+          "<div style='padding:13px 14px;background:#f1e9dc;font-size:16px;font-weight:bold;color:#403328'>" + htmlEscape(huDate(date)) + "</div>" +
+          "<table role='presentation' cellpadding='0' cellspacing='0' style='width:100%;border-collapse:collapse;table-layout:fixed;font-size:13px'>" +
+          "<thead><tr style='background:#faf7f0'><th style='width:22%;text-align:left;padding:10px 6px 10px 12px'>Kategória</th><th style='width:66%;text-align:left;padding:10px 6px'>Étel</th><th style='width:12%;text-align:center;padding:10px 5px'>db</th></tr></thead><tbody>" +
+          lines.map(line => "<tr><td style='vertical-align:top;border-top:1px solid #e8dccb;padding:11px 6px 11px 12px;font-weight:bold'>" +
+            htmlEscape(line.menu === "soup" ? "Napi leves" : line.menu + " menü") +
+            "</td><td style='vertical-align:top;border-top:1px solid #e8dccb;padding:11px 6px;overflow-wrap:anywhere'>" +
+            htmlEscape(line.dish) + "</td><td style='vertical-align:top;text-align:center;border-top:1px solid #e8dccb;padding:11px 5px;font-weight:bold'>" +
+            line.quantity + "</td></tr>").join("") + "</tbody></table></div>"
         ).join("");
         const moneyHu = new Intl.NumberFormat("hu-HU").format(total) + " Ft";
         const qrUrl = "https://api.qrserver.com/v1/create-qr-code/?size=520x520&margin=16&data=" + encodeURIComponent(qrValue);
