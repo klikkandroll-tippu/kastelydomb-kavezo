@@ -77,7 +77,7 @@ export async function POST(req: NextRequest) {
     rows.push(["Választott nap",date],["Érkezés dátuma",arrival.toISOString().slice(0,10)],["Érkezés időpontja",displayTime],["Létszám",guests+" fő"]);
     if(note)rows.push(["Megjegyzés",note]);
     heading="Asztalfoglalási igény";
-    subject="Kastélydomb – új asztalfoglalási igény – "+date+" "+time;
+    subject="Kastélydomb – új asztalfoglalási igény – "+arrival.toISOString().slice(0,10)+" "+displayTime.replace(" (másnap hajnalban)","");
     guestIntro=`Kedves ${name}! Asztalfoglalási igényét megkaptuk. A foglalás csak az étterem külön visszaigazolása után válik véglegessé.`;
     guestFooter="Ha módosítaná vagy lemondaná foglalását, kérjük, vegye fel a kapcsolatot az étteremmel. Ez automatikus üzenet.";
     restaurantIntro="Új asztalfoglalási igény érkezett a weboldalról. Kérjük, ellenőrizzék a szabad helyeket és külön igazolják vissza a vendégnek.";
