@@ -91,7 +91,7 @@ export async function POST(req: NextRequest) {
     if (
       !customer_name ||
       !/^\+?[0-9 ()-]{8,}$/.test(customer_phone) ||
-      (customer_email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(customer_email))
+      (!customer_email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(customer_email))
     )
       return NextResponse.json(
         { error: "Hiányzó vagy hibás kapcsolattartási adatok." },
@@ -363,6 +363,14 @@ export async function POST(req: NextRequest) {
           "<p style='font-size:21px;font-weight:bold;text-align:right;margin:22px 0'>Összesen: " + moneyHu + "</p>" +
           "<div style='background:#faf7f0;padding:18px 10px;text-align:center'><h3>QR-kód az átvételhez</h3><img alt='Rendelés QR-kódja' src='" + htmlEscape(qrUrl) + "' width='480' style='display:block;width:100%;max-width:480px;height:auto;margin:auto'><p style='font-size:13px'>" + htmlEscape(order_number) + "</p><p style='font-size:14px;line-height:1.5'>Kérjük, őrizze meg ezt az e-mailt! Rendelése átvételekor mutassa be a QR-kódot munkatársunknak.</p></div>" +
           "<p style='font-size:12px;color:#68594c;margin-top:18px'>Ez a levél a rendelési igény beérkezését igazolja, nem a végleges elfogadását.</p></div></div></div>";
+        const testNotice = "<p style='padding:12px;background:#fff2cf;color:#403328;font-weight:bold'>ÜGYFÉLTESZT – nem valódi rendelés. Kiszállítás és fizetés nem történik.</p>";
+        const guestHtml = orderHtml.replace("<h2 style='font-size:21px'>", testNotice + "<h2 style='font-size:21px'>");
+        const restaurantHtml = guestHtml.replace("Rendelési igényét rögzítettük", "Új menürendelési tesztigény").replace(
+          "<h3 style='margin-top:28px'>Megrendelt menük</h3>",
+          "<p><strong>Megrendelő:</strong> " + htmlEscape(customer_name) + "<br><strong>Telefon:</strong> " + htmlEscape(customer_phone) + "<br><strong>E-mail:</strong> " + htmlEscape(customer_email) +
+          (company_name ? "<br><strong>Cég:</strong> " + htmlEscape(company_name) + "<br><strong>Számlázási cím:</strong> " + htmlEscape(company_address) + "<br><strong>Adószám:</strong> " + htmlEscape(tax_number) : "") +
+          "</p><h3 style='margin-top:28px'>Megrendelt menük</h3>"
+        );
         const payload = {
           event: "menu.order.created",
           is_test: true,
@@ -381,7 +389,11 @@ export async function POST(req: NextRequest) {
           fulfillment_hu: fulfillmentHu,
           payment_method_hu: paymentHu,
           total_hu: moneyHu,
-          order_html: orderHtml,
+          order_html: guestHtml,
+          guest_html: guestHtml,
+          restaurant_html: restaurantHtml,
+          subject_guest: "[TESZT] Kastélydomb – menürendelése beérkezett – " + order_number,
+          subject_restaurant: "[TESZT] Kastélydomb – új menürendelés – " + order_number,
           qr_url: "https://api.qrserver.com/v1/create-qr-code/?size=520x520&margin=16&data=" + encodeURIComponent(qrValue)
         };
         try {
@@ -399,7 +411,7 @@ export async function POST(req: NextRequest) {
     }
     // The order has been persisted. Mail failure must not duplicate or roll back it.
     // Explicitly enable only after verifying SMTP/Resend settings and delivery.
-    if (process.env.MENU_EMAIL_ENABLED === "true" && customer_email) {
+    if (process.env.MENU_ZAPIER_ENABLED !== "true" && process.env.MENU_EMAIL_ENABLED === "true" && customer_email) {
       const key = process.env.RESEND_API_KEY;
       const from = process.env.MENU_EMAIL_FROM;
       const is_test = isTestMode();

@@ -359,6 +359,7 @@ try {
     request_id: randomUUID(),
     customer_name: "Teszt Rendelő",
     customer_phone: "+36300000000",
+    customer_email: "test@example.test",
     customer_type: "private",
     fulfillment: "pickup",
     payment_method: "cash_on_pickup",
@@ -368,6 +369,7 @@ try {
     days: [{ date: menuStart, A: 0, B: 0, C: 2, soup: 2 }],
   };
   for(const [name,patch] of [
+    ["Email required for guest confirmation",{customer_email:""}],
     ["Online card rejected",{payment_method:"online_card"}],
     ["Private transfer rejected",{payment_method:"company_transfer"}],
     ["Missing company billing rejected",{customer_type:"company",company_name:"Teszt Kft."}],
