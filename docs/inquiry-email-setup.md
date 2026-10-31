@@ -1,3 +1,9 @@
+# Aktuális állapot
+
+A működő ügyfélteszt és a mindhárom űrlapon ellenőrzött címzés végleges állapotát a [2026. október 31-i átadás](client-acceptance-2026-10-31.md) tartalmazza. Az alábbi leírás korábbi munkafázisok feljegyzése; az ott szereplő aktiválási teendők az új átadás szerint értendők.
+
+---
+
 # Ügyféltesztes címzés – új jóváhagyás, 2026. október 31.
 
 A felhasználó jóváhagyta mindhárom folyamatra (menürendelés, kapcsolatfelvétel,
