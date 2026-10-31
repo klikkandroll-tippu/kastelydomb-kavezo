@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 export const runtime = "nodejs";
 const esc = (v: unknown) => String(v ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]!));
-const validEmail = (v: string) => /^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(v);
+const validEmail = (v: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
 const enabled = (type: string) => {
   const key = type === "reservation" ? "RESERVATION_ZAPIER_WEBHOOK_URL" : "CONTACT_ZAPIER_WEBHOOK_URL";
   const value = process.env[key] || "";
@@ -53,8 +53,8 @@ export async function POST(req: NextRequest) {
     restaurantIntro="Új kapcsolatfelvételi üzenet érkezett a weboldalról. Kérjük, vegyék fel a kapcsolatot a küldővel.";
   } else {
     const date=get("date",10),time=get("time",5),guests=Number(get("guests",3)),note=get("note",1200);
-    const d = /^\\d{4}-\\d{2}-\\d{2}$/.test(date) ? new Date(date+"T12:00:00Z") : new Date("invalid");
-    if(!Number.isFinite(d.getTime()) || !/^\\d{2}:\\d{2}$/.test(time) || !(guests>=1&&guests<=20))return NextResponse.json({error:"Ellenőrizze a foglalási adatokat."},{status:400});
+    const d = /^\d{4}-\d{2}-\d{2}$/.test(date) ? new Date(date+"T12:00:00Z") : new Date("invalid");
+    if(!Number.isFinite(d.getTime()) || !/^\d{2}:\d{2}$/.test(time) || !(guests>=1&&guests<=20))return NextResponse.json({error:"Ellenőrizze a foglalási adatokat."},{status:400});
     const timeMinutes=Number(time.slice(0,2))*60+Number(time.slice(3));
     const day=d.getUTCDay(),closing=(day===5||day===6)?1620:1320;
     if(timeMinutes<600||timeMinutes>=closing) return NextResponse.json({error:"A kiválasztott időpont nyitvatartáson kívül esik."},{status:400});
