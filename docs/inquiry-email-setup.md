@@ -1,78 +1,88 @@
-# Kapcsolatfelvétel és asztalfoglalás – e-mailes értesítések
+# Kapcsolatfelvétel és asztalfoglalás – ellenőrzött átadás
 
-Dátum: 2026. október 31. Kizárólag tesztüzem. Az éles küldés nincs engedélyezve.
+**Ellenőrzés: 2026. október 31., Europe/Budapest. Állapot: működő tesztüzem.**
 
-## Meglévő alap és változások
+A korábbi Zapier-belépési akadály friss Google-hitelesítéssel megszűnt. A pontos eredeti ok nem bizonyított; az új belépés sikeres volt. A két külön automatizmus létrejött, a webhookok a Vercel tesztágához csatlakoznak, és a teljes webes beküldésből automatikusan megérkeztek a levelek.
 
-Repository: klikkandroll-tippu/kastelydomb-kavezo. Tesztág: fix/mobile-ux-20261031.
-A meglévő két űrlap és a `src/app/api/inquiries/route.ts` végpont megmaradt.
-A jóváhagyott napi menüs levélből Gmailben ellenőrzött színek: barna #403328,
-bézs #f5f1e9, világos panel #faf7f0, fehér tartalom, legfeljebb 600 px szélesség.
-Mindkét űrlap két külön HTML-t állít elő: éttermi értesítés és vendég beérkezési visszaigazolás.
-Az asztalfoglalás csak külön éttermi visszaigazolás után végleges.
+## Működő elemek
 
-A folytatásban javítva: JSON-alak és tényleges méret ellenőrzése; érvénytelen vagy elmúlt
-foglalási nap; hibás perc/óra és tört létszám; másnap hajnali időpont közérthető megjelenítése;
-igényazonosító; TESZT tárgy és figyelmeztetés. A státuszvégpont az éles küldési tiltást is figyelembe veszi.
-A Vercel preview környezet mindig tesztcímzést használ, akkor is, ha a projekt módját tévesen productionre állítják.
-
-## Két létrehozandó Zap
-
-Nem jöttek létre ebben a munkamenetben: a kapcsolt Zapier Manager nem támogat Zap/lépés létrehozást,
-a böngészős Google-belépés pedig a Zapier visszatérési oldalán hibát adott:
-`Zapier could not connect to your account. Need code, state and a cached state.`
-Friss Zapier-oldalon sem volt bejelentkezett munkamenet.
-
-1. **Kastélydomb – Kapcsolatfelvétel – TESZT**
-2. **Kastélydomb – Asztalfoglalási igény – TESZT**
-
-Mindkét Zap lépései:
-
-1. Webhooks by Zapier → Catch Hook. Külön webhook a két űrlapnak.
-2. Filter: `is_test` igaz és `event` rendre `contact.created` vagy `reservation.requested`.
-3. Gmail → Send Email, éttermi példány.
-4. Gmail → Send Email, vendégpéldány.
-
-Gmail-feladó kapcsolat: **klikkandroll.ai@gmail.com**, név: Kastélydomb Kávézó és Étterem – TESZT.
-Nem az alapértelmezett, más ügyfélhez tartozó Gmail-kapcsolatot kell használni.
-
-| Gmail-mező | Éttermi lépés | Vendéglépés |
-| --- | --- | --- |
-| To tesztüzemben | fix tippanzsolt@gmail.com | fix tippanzsolt@gmail.com |
-| Subject | subject_restaurant | subject_guest |
-| Body type | HTML | HTML |
-| Body | restaurant_html | guest_html |
-| CC / BCC | üres | üres |
-| Csoportos küldés | kikapcsolva | kikapcsolva |
-
-A tesztben a címzettet fixen kell beírni; az eredeti vendég e-mailjét tilos a To/CC/BCC mezőhöz rendelni.
-A végleges éttermi cím fenyocsaba@gmail.com, de ebben a fázisban oda sem küldünk.
-A napi menürendelési és a karácsonyi Zap külön folyamat, nem helyettesíti a két új automatizmust.
-
-## Vercel bekötés – a webhookok létrehozása után
-
-Csak a **preview** célra és a **fix/mobile-ux-20261031** ágra:
-
-| Változó | Érték |
+| Elem | Ellenőrzött eredmény |
 | --- | --- |
-| CONTACT_ZAPIER_WEBHOOK_URL | az új kapcsolatfelvételi Catch Hook URL |
-| RESERVATION_ZAPIER_WEBHOOK_URL | az új foglalási Catch Hook URL |
-| KASTELYDOMB_MODE | test |
-| INQUIRY_LIVE_EMAILS_ENABLED | false |
+| Kapcsolatfelvételi űrlap → API → Zapier → Gmail | Sikeres böngészős beküldés, 2 beérkezett levél |
+| Asztalfoglalási űrlap → API → Zapier → Gmail | Sikeres böngészős beküldés, 2 beérkezett levél; hajnali időponttal is újratesztelve |
+| Éttermi értesítő és vendég visszaigazolása | Külön HTML-levelek mindkét űrlapnál |
+| Arculat | #403328 barna, #f5f1e9 bézs, #faf7f0 világos panel, fehér tartalom, 600 px szélesség |
+| Tesztcímzés | Minden levél kizárólag tippanzsolt@gmail.com, CC/BCC üres |
+| Feladó | klikkandroll.ai@gmail.com; Kastélydomb Kávézó és Étterem – TESZT |
+| Valódi vendégcím védelme | Az űrlapba nem-küldendő tesztcím került, mégis csak a kijelölt tesztcím kapott levelet |
+| Foglalás jelentése | Csak az igény beérkezését igazolja; külön éttermi elfogadás kell |
+| Nem tesztadat blokkolása | is_test=false esetén mindkét Zap futása Filtered, levélküldés nélkül |
+| Automatizált kódellenőrzés | npm test: 24/24; npm run build és TypeScript: sikeres |
+| Éles küldés és production kiadás | Nem aktiváltuk |
 
-Valós webhook helyett helykitöltőt nem szabad beállítani. Production változóhoz nem nyúlunk.
-Beállítás után új preview telepítés szükséges. A POST-válasz `ok:true` csak a webhook átvételét igazolja;
-a Gmail-kézbesítést külön beérkezett levelekkel és Zap Historyval kell igazolni.
+## Automatizmusok
 
-## Ellenőrzések és folytatás
+| Zap | Azonosító | Állapot | Lépések |
+| --- | --- | --- | --- |
+| Kastélydomb – Kapcsolatfelvétel – TESZT | 385372469 | Bekapcsolva, csak tesztadatot fogad | Catch Hook → Filter → Gmail vendég → Gmail étterem |
+| Kastélydomb – Asztalfoglalási igény – TESZT | 385372524 | Bekapcsolva, csak tesztadatot fogad | Catch Hook → Filter → Gmail étterem → Gmail vendég |
 
-`npm test`: 24/24 sikeres, ebből 9 értesítési teszteset. `npm run build`: sikeres, TypeScript is hibamentes.
-A webhook-próbák a tesztkészletben helyettesített hálózati hívást használnak, nem bizonyítanak Zap-futást.
+A szűrő mindkét Zapban AND kapcsolatot használ: is_test igaz és a megfelelő event. A kapcsolat eseménye contact.created; a foglalásé reservation.requested.
 
-Négy külön HTML-küldési próba ment Zapier MCP → Gmail útvonalon a meglévő végpont által előállított tartalommal:
-kapcsolatfelvétel éttermi/vendég és foglalás éttermi/vendég. Címzett kizárólag tippanzsolt@gmail.com.
-Ezek komponenspróbák, nem teljes webes automatizmustesztek.
+A két Gmail-lépésben fixen tippanzsolt@gmail.com szerepel. A vendég eredeti e-mailjét egyik címzettmező sem használja. A csoportos küldés ki van kapcsolva.
 
-Hátravan a belépési akadály feloldása, a két Zap létrehozása és mezőtérképezése,
-az új webhookok preview-ágra állítása, majd mindkét űrlap tényleges beküldése és négy beérkezett levél visszaellenőrzése.
-Az éles küldés aktiválása és a production kiadás nincs engedélyezve.
+| Szerep | Tárgy mező | HTML-törzs mező |
+| --- | --- | --- |
+| Étterem | subject_restaurant | restaurant_html |
+| Vendég | subject_guest | guest_html |
+
+## Vercel és GitHub
+
+Repository: klikkandroll-tippu/kastelydomb-kavezo.
+Ág: fix/mobile-ux-20261031. A main ágra nem került módosítás.
+A meglévő űrlapok és a /api/inquiries végpont maradtak a rendszer alapjai.
+
+Csak preview célra, kizárólag a tesztágra beállítva:
+
+- CONTACT_ZAPIER_WEBHOOK_URL: a kapcsolatfelvételi Zap saját Catch Hookja.
+- RESERVATION_ZAPIER_WEBHOOK_URL: a foglalási Zap saját Catch Hookja.
+- KASTELYDOMB_MODE=test.
+- INQUIRY_LIVE_EMAILS_ENABLED=false.
+
+A webhook-címeket szándékosan nem tartalmazza a dokumentum; azok a Vercel környezeti változóiban vannak.
+A preview környezetben a szerver a projektmódtól függetlenül tesztcímzésre kényszerít.
+
+Utolsó funkcionálisan tesztelt kódcommit: 482cc4734389a3d1c911bb46f1708e02256de10d.
+Vercel deployment: dpl_5zSDkdRaUo2Rr3c3kwvgG7Ah4kDA, READY.
+Tesztoldal: https://kastelydomb-kavezo-h5hynl49k-tippanzsolt-8580s-projects.vercel.app/
+Foglalás: https://kastelydomb-kavezo-h5hynl49k-tippanzsolt-8580s-projects.vercel.app/asztalfoglalas
+
+## Bizonyítékok a teljes folyamat tesztjéből
+
+Kapcsolat: E2E-KAPCSOLAT-20261031-1641.
+Igényazonosító: 7f86337c-4830-4901-9a09-bc528185a3df.
+
+| Példány | Beérkezett Gmail üzenetazonosító |
+| --- | --- |
+| Éttermi | 1a1929dc8c9fd892 |
+| Vendég | 1a1929dbf0bbcd70 |
+
+Mindkét levél ugyanazt az igényazonosítót és tesztüzenetet tartalmazta. Az ékezetek és a HTML-érzékeny karakterek megfelelően jelentek meg a HTML-forrásban. A weboldal sikeres tesztküldést jelzett, az űrlap kiürült.
+
+Foglalás újratesztelve: E2E-FOGLALAS-JAVITOTT-20261031.
+Igényazonosító: e5fff033-8cdd-427c-bbe4-9ba20f39e05d.
+
+| Példány | Beérkezett Gmail üzenetazonosító |
+| --- | --- |
+| Éttermi | 1a192a16e476067b |
+| Vendég | 1a192a17866b90bc |
+
+A kiválasztott nap 2026-11-06, időpontja másnap hajnal 02:30, létszám 2 fő. A levéltörzs helyes érkezési dátuma 2026-11-07, és a javítás után a tárgy is 2026-11-07 02:30. A vendéglevél külön éttermi visszaigazolást ír elő. A weboldal sikeres tesztküldést jelzett.
+
+A Zapier futási naplóban mindkét folyamatnál Successful állapot szerepelt. Külön is_test=false próbánál mindkettő Filtered lett; a blokkolandó tárgyú levelekre a Gmail-keresés nem adott találatot.
+
+## Még nem bekapcsolt, külön jóváhagyást igénylő működés
+
+A kért tesztüzemi e-mailfolyamatból nincs fennmaradó technikai feladat.
+
+Az éles weboldalra kiadás, a fenyocsaba@gmail.com éttermi cím aktiválása és a valódi vendégeknek történő küldés szándékosan nincs bekapcsolva. Ezek későbbi, külön jóváhagyott lépések. Az élesítéskor a jelenlegi, kizárólag tesztadatot fogadó Zap-szűrőket és a fix tesztcímzést is tudatosan át kell alakítani; pusztán a projektmód átállítása nem engedélyezi a valódi küldést.
