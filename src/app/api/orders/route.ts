@@ -333,6 +333,30 @@ export async function POST(req: NextRequest) {
       if (hook && hook.startsWith("https://hooks.zapier.com/hooks/catch/")) {
         const testEmail = "tippanzsolt@gmail.com";
         const qrValue = "KASTELYDOMB:MENU:" + id;
+        const htmlEscape = (value: string) => value.replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]!));
+        const huDate = (date: string) => new Intl.DateTimeFormat("hu-HU", { year: "numeric", month: "long", day: "numeric", weekday: "long", timeZone: "UTC" }).format(new Date(date + "T12:00:00Z"));
+        const fulfillmentHu = fulfillment === "delivery" ? "Kiszállítás" : fulfillment === "dine_in" ? "Helyben fogyasztás" : "Elvitel";
+        const paymentHu = payment_method === "card_on_pickup" ? "Bankkártya az átvételkor" : payment_method === "company_transfer" ? "Banki átutalás" : "Készpénz az átvételkor";
+        const byDay = new Map<string, typeof items>();
+        for (const item of items) byDay.set(item.date, [...(byDay.get(item.date) || []), item]);
+        const dayCardsHtml = [...byDay.entries()].map(([date, lines]) =>
+          "<div style='margin:0 0 14px;padding:16px;background:#faf7f0;border:1px solid #e8dccb;border-radius:10px'>" +
+          "<div style='font-size:17px;font-weight:bold;color:#403328;margin-bottom:12px'>" + htmlEscape(huDate(date)) + "</div>" +
+          lines.map(line => "<div style='padding:8px 0;border-top:1px solid #e8dccb;font-size:15px;line-height:1.5'>" +
+            "<strong>" + htmlEscape(line.menu === "soup" ? "Leves" : line.menu + " menü") + "</strong>: " +
+            htmlEscape(line.dish) + "<div style='font-weight:bold;margin-top:3px'>" + line.quantity + " adag</div></div>").join("") + "</div>"
+        ).join("");
+        const moneyHu = new Intl.NumberFormat("hu-HU").format(total) + " Ft";
+        const qrUrl = "https://api.qrserver.com/v1/create-qr-code/?size=520x520&margin=16&data=" + encodeURIComponent(qrValue);
+        const orderHtml = "<div style='background:#f5f1e9;padding:18px 10px;font-family:Arial,Helvetica,sans-serif;color:#403328'><div style='max-width:600px;margin:auto;background:white'>" +
+          "<div style='background:#403328;color:#fff;text-align:center;padding:24px 18px'><strong style='font-size:22px'>Kastélydomb Kávézó és Étterem</strong><div style='margin-top:8px'>Napi menü – rendelési összesítő</div></div>" +
+          "<div style='padding:24px 18px'><h2 style='font-size:21px'>Rendelési igényét rögzítettük</h2><p>Kedves " + htmlEscape(customer_name) + "! Köszönjük megrendelését. Az étterem külön visszaigazolja annak elfogadását.</p>" +
+          "<p><strong>Rendelésazonosító:</strong><br><span style='font-weight:bold;overflow-wrap:anywhere'>" + htmlEscape(order_number) + "</span></p>" +
+          "<p><strong>Átvétel módja:</strong> " + fulfillmentHu + (fulfillment === "delivery" ? "<br><strong>Kiszállítási cím:</strong> " + htmlEscape(delivery_address) : "") +
+          "<br><strong>Fizetési mód:</strong> " + paymentHu + "</p><h3 style='margin-top:28px'>Megrendelt menük</h3>" + dayCardsHtml +
+          "<p style='font-size:21px;font-weight:bold;text-align:right;margin:22px 0'>Összesen: " + moneyHu + "</p>" +
+          "<div style='background:#faf7f0;padding:18px 10px;text-align:center'><h3>QR-kód az átvételhez</h3><img alt='Rendelés QR-kódja' src='" + htmlEscape(qrUrl) + "' width='480' style='display:block;width:100%;max-width:480px;height:auto;margin:auto'><p style='font-size:13px'>" + htmlEscape(order_number) + "</p><p style='font-size:14px;line-height:1.5'>Kérjük, őrizze meg ezt az e-mailt! Rendelése átvételekor mutassa be a QR-kódot munkatársunknak.</p></div>" +
+          "<p style='font-size:12px;color:#68594c;margin-top:18px'>Ez a levél a rendelési igény beérkezését igazolja, nem a végleges elfogadását.</p></div></div></div>";
         const payload = {
           event: "menu.order.created",
           is_test: true,
@@ -347,6 +371,10 @@ export async function POST(req: NextRequest) {
           items,
           total_huf: total,
           qr_value: qrValue,
+          fulfillment_hu: fulfillmentHu,
+          payment_method_hu: paymentHu,
+          total_hu: moneyHu,
+          order_html: orderHtml,
           qr_url: "https://api.qrserver.com/v1/create-qr-code/?size=520x520&margin=16&data=" + encodeURIComponent(qrValue)
         };
         try {
