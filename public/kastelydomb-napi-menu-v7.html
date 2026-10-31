@@ -48,12 +48,12 @@ const WEEK={period:'2026. október 19–23.',days:[
 {label:'Péntek',date:'2026-10-23',holiday:true,soup:'Zöldbableves',A:null,B:'Töltött dagadó, vegyes köret',C:null}]};
 // Forrás: 2026. október 19–23-i feltöltött heti étlap. Árak: korábban beállított demóárak, külön nem ellenőrizve.
 const RATES={yes:{AB:1700,C:2300,soup:200},no:{C:2800}};
-const WEEKS=[WEEK,{period:'2026. október 26–30.',days:[
-{label:'Hétfő',date:'2026-10-26',soup:'Fokhagyma-krémleves',A:'Tarhonyás hús',B:'Mexikói csirkeragu, párolt rizs',C:'Sajttal-sonkával töltött borda, petrezselymes burgonya'},
-{label:'Kedd',date:'2026-10-27',soup:'Karalábéleves',A:'Pikáns csirkeszárnyak, párolt rizs',B:'Csikós tokány, orsótészta',C:'Palermói szelet, párolt rizs'},
-{label:'Szerda',date:'2026-10-28',soup:'Húsleves kiskocka tésztával',A:'Sárgaborsófőzelék, feltét',B:'Paradicsomos káposzta, feltét',C:'Rántott szelet, hasábburgonya'},
-{label:'Csütörtök',date:'2026-10-29',soup:'Tojásleves',A:'Disznótoros, hagymás tört burgonya',B:'Zöldborsós szelet, párolt rizs',C:'Kijevi sertésborda, párolt rizs'},
-{label:'Péntek',date:'2026-10-30',soup:'Legényfogó leves',A:'Mákos/diós tészta',B:'Túrógombóc édes tejföllel',C:'Sertésflekken, pirított burgonya'}
+const WEEKS=[WEEK,{period:'2026. november 2–6.',days:[
+{label:'Hétfő',date:'2026-11-02',soup:'Vöröslencseleves',A:'Karfiolos-sajtos sertéstokány, párolt rizs',B:'Hagymás csirkemáj, burgonya',C:'Borzas szelet, párolt rizs'},
+{label:'Kedd',date:'2026-11-03',soup:'Zöldségleves',A:'Bolognai spagetti, reszelt sajt',B:'Vagdalt szelet, párolt rizs',C:'Velővel töltött borda, pirított kockaburgonya'},
+{label:'Szerda',date:'2026-11-04',soup:'Csontleves daragaluskával',A:'Főtt tojás, spenót, tört burgonya',B:'Finomfőzelék, feltét',C:'Natúr szelet pórémártással, párolt rizs'},
+{label:'Csütörtök',date:'2026-11-05',soup:'Árpagyöngyleves',A:'Temesvári szelet, párolt rizs',B:'Töltött csirkecomb, petrezselymes burgonya',C:'Kassai töltött borda (sonka, tojás, zöldborsó), petrezselymes burgonya'},
+{label:'Péntek',date:'2026-11-06',soup:'Bakonyi betyárleves',A:'Morzsás nudli',B:'Káposztás tészta',C:'Pankómorzsában sült csirkemellcsíkok, párolt rizs'}
 ]}];let activeWeek=0;const WEEK_SELECTIONS=WEEKS.map(w=>w.days.map(()=>({soup:0,A:0,B:0,C:0})));
 const $=id=>document.getElementById(id),fmt=n=>new Intl.NumberFormat('hu-HU').format(n)+' Ft';
 const esc=v=>String(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
