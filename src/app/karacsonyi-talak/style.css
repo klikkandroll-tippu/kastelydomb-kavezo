@@ -2,3 +2,17 @@
 .xmas-ingredients{margin:12px 0 0;padding-left:19px;font-size:14px;line-height:1.5;color:#50463d}.xmas-ingredients li{margin:4px 0}.xmas-card{align-items:flex-start}.xmas-address{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.xmas-address label{display:grid;gap:6px;font-weight:700}.xmas-address input,.xmas-address select{width:100%;min-width:0;padding:12px;border:1px solid #bfb5a5;border-radius:7px;background:#fff;color:#332c26}.xmas-address small{grid-column:1/-1}.xmas button,.xmas input,.xmas select,.xmas textarea{font:inherit}.xmas-qty button:hover,.xmas-qty button:focus-visible{background:#f3ead9;border-color:#947b52}.xmas input:focus-visible,.xmas select:focus-visible,.xmas textarea:focus-visible,.xmas button:focus-visible{outline:2px solid #80613c;outline-offset:2px}@media(max-width:720px){.xmas-address{grid-template-columns:1fr}.xmas-card{flex-direction:column}.xmas-qty{align-self:flex-end}}
 
 .xmas-footer h2{color:#fff;font-size:26px}.xmas-phones{display:flex;justify-content:center;flex-wrap:wrap;gap:12px 25px;margin:20px auto 28px}.xmas-phones a{display:inline-block;color:#fff;text-decoration:none;font-size:clamp(17px,2.4vw,22px);font-weight:700;border:1px solid #b8a58d;border-radius:8px;padding:12px 18px}.xmas-phones a:hover,.xmas-phones a:focus-visible{background:#5d4c3d;text-decoration:underline}
+
+/* Two clearly separated quantity selectors inside a single fish soup product card */
+.xmas-fish-card{display:block;grid-column:span 1;padding:0;overflow:hidden}
+.xmas-fish-groups{width:100%}
+.xmas-fish-row{display:flex;align-items:center;justify-content:space-between;gap:20px;padding:22px}
+.xmas-fish-row>div:first-child{min-width:0;flex:1}
+.xmas-fish-row h3{font-size:20px;margin:0 0 7px}
+.xmas-fish-row p{margin:0 0 6px}
+.xmas-fish-row small{display:block;line-height:1.4}
+.xmas-fish-extra{background:#f5eee1;border-top:1px solid #e4dbce}
+.xmas-fish-note{display:block;padding:13px 22px;color:#66584b;border-top:1px solid #e4dbce;line-height:1.5}
+.xmas-fish-row .xmas-qty{margin-left:auto;flex-shrink:0}
+.xmas-qty button:disabled{opacity:.35;cursor:not-allowed}
+@media(max-width:440px){.xmas-fish-row{padding:17px 14px;gap:10px}.xmas-fish-row h3{font-size:17px}.xmas-fish-row .xmas-qty{gap:5px}.xmas-fish-row .xmas-qty button{width:34px;height:38px}.xmas-fish-note{padding:13px 14px}}
