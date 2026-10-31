@@ -16,3 +16,14 @@
 .xmas-fish-row .xmas-qty{margin-left:auto;flex-shrink:0}
 .xmas-qty button:disabled{opacity:.35;cursor:not-allowed}
 @media(max-width:440px){.xmas-fish-row{padding:17px 14px;gap:10px}.xmas-fish-row h3{font-size:17px}.xmas-fish-row .xmas-qty{gap:5px}.xmas-fish-row .xmas-qty button{width:34px;height:38px}.xmas-fish-note{padding:13px 14px}}
+
+/* Clearer product headings and photo-first card layout */
+.xmas-card h3{font-size:clamp(22px,2.2vw,27px);font-weight:800;line-height:1.22;letter-spacing:-.02em}
+.xmas-fish-row h3{font-size:clamp(20px,2vw,24px);font-weight:800}
+.xmas-card{position:relative}
+.xmas-product-visual{width:100%;aspect-ratio:16/9;overflow:hidden;background:#eee5d8}
+.xmas-product-visual img{display:block;width:100%;height:100%;object-fit:cover}
+.xmas-product-visual-label{position:absolute;left:14px;top:14px;background:rgba(33,27,21,.8);color:white;padding:5px 9px;border-radius:4px;font-size:11px}
+.xmas-card:has(.xmas-product-visual){display:flex;flex-direction:column;padding:0;gap:0;overflow:hidden}
+.xmas-card:has(.xmas-product-visual) .xmas-product-details{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;padding:20px;width:100%}
+@media(max-width:720px){.xmas-card:has(.xmas-product-visual) .xmas-product-details{flex-direction:column}.xmas-card:has(.xmas-product-visual) .xmas-product-details .xmas-qty{align-self:flex-end}}
