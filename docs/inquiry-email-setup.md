@@ -1,3 +1,45 @@
+# Ügyféltesztes címzés – új jóváhagyás, 2026. október 31.
+
+A felhasználó jóváhagyta mindhárom folyamatra (menürendelés, kapcsolatfelvétel,
+asztalfoglalás): vendégpéldány a beküldő saját címére; éttermi példány
+fenyocsaba@gmail.com; mindkét levél BCC-je tippanzsolt@gmail.com.
+Az oldal továbbra is kizárólag a Vercel előnézetben marad; domainátállítás nincs.
+
+## Előkészítve, még nem aktiválva
+
+A közös email-routing modul a CLIENT_TEST_EMAILS_ENABLED=true kapcsolóval,
+kizárólag Vercel preview és nem production projektmódban engedélyezi ezt a
+címzést. A kapcsoló hiányában megmarad a korábbi tesztcímzés. A webhook
+payload is_test=true marad, ezért a meglévő Zap-szűrők megtarthatók.
+A BCC csak az ügyfélteszthez tartozik, production módban üres.
+
+A kapcsolat/foglalás payload mezői: guest_email, restaurant_email, email_bcc.
+A menürendelésnél ugyanezek mellett a customer_email is a vendégcímre mutat.
+
+## Aktiválás előtt még elvégzendő
+
+1. Mindhárom Zap két Gmail-lépésében a fix tesztcím helyett a megfelelő
+   webhookmezőt kell bekötni (vendég: guest_email, illetve menünél customer_email;
+   étterem: restaurant_email). A BCC mind a hat lépésben a payload email_bcc
+   mezője legyen. CC továbbra is üres. Tesztküldés előtt ellenőrizni kell a címzést.
+2. A menürendelési Zap jelenlegi címzését és az esetleges párhuzamos Resend
+   küldés beállítását ellenőrizni kell a dupla küldés elkerüléséhez.
+3. Csak ezután állítható be az új kapcsoló a fix/mobile-ux-20261031 ág preview
+   környezetében, majd új preview build szükséges. Productionhoz nem nyúlunk.
+4. Mindhárom űrlapot ténylegesen be kell küldeni, és ellenőrizni a két címzettet,
+   a BCC-t, a levéltartalmat és a kézbesítést. Ez az új címzéssel még NEM történt meg.
+
+A korábbi Browserbase böngészőszolgáltatás 402-es hibával az ingyenes csomag
+böngészőperceinek elfogyását jelezte. A Zapier szerkesztő módosításához másik
+böngészőút szükséges; erre az eszköz használati szabálya előzetes felhasználói
+hozzájárulást ír elő. A felhasználó a címzési átállítást már jóváhagyta, az új
+kérdés kizárólag a böngészőváltásra vonatkozik.
+
+Az alábbi jelentés az előző, kizárólag tesztcímre küldő működés bizonyítéka;
+nem igazolja az új ügyféltesztes címzés aktiválását.
+
+---
+
 # Kapcsolatfelvétel és asztalfoglalás – ellenőrzött átadás
 
 **Ellenőrzés: 2026. október 31., Europe/Budapest. Állapot: működő tesztüzem.**

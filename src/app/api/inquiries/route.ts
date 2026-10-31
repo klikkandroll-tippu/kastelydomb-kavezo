@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { emailRecipients } from "@/lib/email-routing";
 
 export const runtime = "nodejs";
 const esc = (v: unknown) => String(v ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]!));
@@ -83,17 +84,20 @@ export async function POST(req: NextRequest) {
     restaurantIntro="Új asztalfoglalási igény érkezett a weboldalról. Kérjük, ellenőrizzék a szabad helyeket és külön igazolják vissza a vendégnek.";
   }
   const isTest = isTestMode();
+  const recipients = emailRecipients(email, isTest);
   const requestId = crypto.randomUUID();
   rows.unshift(["Igényazonosító",requestId]);
   if(isTest) {
     heading = "TESZT – "+heading;
     subject = "[TESZT] "+subject;
-    const notice = "TESZTÜZEM: ez nem valódi megkeresés vagy foglalás. Mindkét e-mail kizárólag a tesztcímre érkezik. ";
+    const notice = recipients.client_test
+      ? "ÜGYFÉLTESZT: ez próbabeküldés, nem végleges megkeresés vagy foglalás. "
+      : "TESZTÜZEM: ez nem valódi megkeresés vagy foglalás. Mindkét e-mail kizárólag a tesztcímre érkezik. ";
     guestIntro = notice+guestIntro;
     restaurantIntro = notice+restaurantIntro;
   }
   if(!isTest && process.env.INQUIRY_LIVE_EMAILS_ENABLED !== "true")return NextResponse.json({error:"Az éles értesítések még nincsenek engedélyezve."},{status:503});
-  const payload={ request_id:requestId, event: type==="contact"?"contact.created":"reservation.requested",is_test:isTest,restaurant_email:isTest?"tippanzsolt@gmail.com":"fenyocsaba@gmail.com",guest_email:isTest?"tippanzsolt@gmail.com":email,original_guest_email_suppressed:isTest,customer_name:name,guest_email_original:isTest?undefined:email,subject_restaurant:subject,subject_guest:subject.replace("új ","")+" – beérkezett",restaurant_html:html(heading,restaurantIntro,rows,"A vendégnek szóló igényt az étterem munkatársa kezelje."),guest_html:html(heading,guestIntro,rows,guestFooter)};
+  const payload={ request_id:requestId, event: type==="contact"?"contact.created":"reservation.requested",is_test:isTest,...recipients,customer_name:name,guest_email_original:recipients.original_guest_email_suppressed?undefined:email,subject_restaurant:subject,subject_guest:subject.replace("új ","")+" – beérkezett",restaurant_html:html(heading,restaurantIntro,rows,"A vendégnek szóló igényt az étterem munkatársa kezelje."),guest_html:html(heading,guestIntro,rows,guestFooter)};
   try {
     const response=await fetch(hook,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload),signal:AbortSignal.timeout(8000)});
     if(!response.ok)throw Error("Webhook HTTP "+response.status);

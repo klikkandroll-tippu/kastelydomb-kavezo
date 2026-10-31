@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import {acceptsOrders,isTestMode} from "@/lib/app-mode";
+import { emailRecipients } from "@/lib/email-routing";
 import { body, db, rpc, hash, sameOrigin } from "@/lib/admin-server";
 import { beforeCutoff, budapestParts, MenuDay } from "@/lib/menu";
 export const dynamic = "force-dynamic";
@@ -326,12 +327,13 @@ export async function POST(req: NextRequest) {
         { status: 502 },
       );
     }
-    // Preview-only Zapier integration. Never send a test order to a real guest.
+    // Test orders remain isolated; client acceptance testing explicitly opts in
+    // to guest + restaurant delivery with an agency BCC copy.
     // The database write above is authoritative; no webhook on retries.
     if (isTestMode() && process.env.MENU_ZAPIER_ENABLED === "true") {
       const hook = process.env.MENU_ZAPIER_WEBHOOK_URL;
       if (hook && hook.startsWith("https://hooks.zapier.com/hooks/catch/")) {
-        const testEmail = "tippanzsolt@gmail.com";
+        const recipients = emailRecipients(customer_email, true);
         const qrValue = "KASTELYDOMB:MENU:" + id;
         const htmlEscape = (value: string) => value.replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]!));
         const huDate = (date: string) => new Intl.DateTimeFormat("hu-HU", { year: "numeric", month: "long", day: "numeric", weekday: "long", timeZone: "UTC" }).format(new Date(date + "T12:00:00Z"));
@@ -364,11 +366,12 @@ export async function POST(req: NextRequest) {
         const payload = {
           event: "menu.order.created",
           is_test: true,
+          ...recipients,
           order_id: id,
           order_number,
           customer_name,
-          customer_email: testEmail,
-          original_recipient_suppressed: true,
+          customer_email: recipients.guest_email,
+          original_recipient_suppressed: recipients.original_guest_email_suppressed,
           fulfillment,
           delivery_address: fulfillment === "delivery" ? delivery_address : "",
           payment_method,
