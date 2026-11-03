@@ -61,7 +61,8 @@ function orderAllowed(d,k,plan,ful){
   if(d.date<now.date || (d.date===now.date && now.minutes>=(ful==='delivery'?540:870)))return false;
   if(plan==='yes'&&(k==='A'||k==='B')&&!d.holiday){
     const date=new Date(d.date+'T12:00:00Z'),weekday=(date.getUTCDay()+6)%7;
-    date.setUTCDate(date.getUTCDate()+3-weekday);
+    // A heti előfizetés határideje: az adott hét szerdája, 14:30.
+    date.setUTCDate(date.getUTCDate()+2-weekday);
     const cutoff=date.toISOString().slice(0,10);
     if(now.date>cutoff || now.date===cutoff&&now.minutes>=870)return false;
   }
