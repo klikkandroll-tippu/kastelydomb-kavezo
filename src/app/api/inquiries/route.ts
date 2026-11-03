@@ -23,7 +23,7 @@ function html(title: string, intro: string, rows: [string, string][], footer: st
   <div style="padding:24px 18px"><p style="font-size:16px;line-height:1.65">${esc(intro)}</p>
   <div style="background:#faf7f0;border:1px solid #e8dccb;border-radius:9px;overflow:hidden">
   ${rows.map(([k,v])=>`<div style="padding:12px 14px;border-bottom:1px solid #e8dccb;font-size:14px;line-height:1.65"><strong>${esc(k)}</strong><div style="white-space:pre-wrap;overflow-wrap:anywhere">${esc(v)}</div></div>`).join("")}</div>
-  <p style="font-size:13px;line-height:1.7;margin-top:24px">${esc(footer)}</p></div>
+  <p style="font-size:13px;line-height:1.7;margin-top:24px">${esc(footer).replace("06 88 470 350", '<a href="tel:+3688470350" style="color:#493329;font-weight:700;text-decoration:underline">06 88 470 350</a>')}</p></div>
   <div style="text-align:center;background:#f5f1e9;padding:18px;color:#68594c;font-size:12px">Kastélydomb Kávézó és Étterem</div></div></div></body></html>`;
 }
 export async function GET() {
@@ -80,7 +80,7 @@ export async function POST(req: NextRequest) {
     heading="Asztalfoglalási igény";
     subject="Kastélydomb – új asztalfoglalási igény – "+arrival.toISOString().slice(0,10)+" "+displayTime.replace(" (másnap hajnalban)","");
     guestIntro=`Kedves ${name}! Asztalfoglalási igényét megkaptuk. A foglalás csak az étterem külön visszaigazolása után válik véglegessé.`;
-    guestFooter="Ha módosítaná vagy lemondaná foglalását, kérjük, vegye fel a kapcsolatot az étteremmel. Ez automatikus üzenet.";
+    guestFooter="Ha módosítani vagy lemondani szeretné foglalását, kérjük, hívjon minket a 06 88 470 350 telefonszámon. Ez automatikus üzenet, kérjük, ne válaszoljon erre az e-mailre.";
     restaurantIntro="Új asztalfoglalási igény érkezett a weboldalról. Kérjük, ellenőrizzék a szabad helyeket és külön igazolják vissza a vendégnek.";
   }
   const isTest = isTestMode();
