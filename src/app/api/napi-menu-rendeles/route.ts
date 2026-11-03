@@ -45,7 +45,7 @@ export async function POST(req:NextRequest){
     if(d.plan==="no"&&(a||b||s!==c))return bad("Előfizetés nélkül kizárólag C menü rendelhető levessel.");
     if(day.date<now.date || (day.date===now.date && now.minutes >= (d.fulfillment==="delivery"?540:870)))return bad("Az egyik kiválasztott nap rendelési határideje lejárt.");
     if(d.plan==="yes"&&(a||b)){
-      const date=new Date(day.date+"T12:00:00Z");const weekday=(date.getUTCDay()+6)%7;date.setUTCDate(date.getUTCDate()+3-weekday);
+      const date=new Date(day.date+"T12:00:00Z");const weekday=(date.getUTCDay()+6)%7;date.setUTCDate(date.getUTCDate()+2-weekday);
       const cutoff=date.toISOString().slice(0,10);
       if(now.date>cutoff || now.date===cutoff&&now.minutes>=870)return bad("Az A/B menük előrendelési határideje lejárt.");
     }
