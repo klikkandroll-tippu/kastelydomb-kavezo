@@ -87,15 +87,6 @@ export async function POST(req: NextRequest) {
   const recipients = emailRecipients(email, isTest);
   const requestId = crypto.randomUUID();
   rows.unshift(["Igényazonosító",requestId]);
-  if(isTest) {
-    heading = "TESZT – "+heading;
-    subject = "[TESZT] "+subject;
-    const notice = recipients.client_test
-      ? "ÜGYFÉLTESZT: ez próbabeküldés, nem végleges megkeresés vagy foglalás. "
-      : "TESZTÜZEM: ez nem valódi megkeresés vagy foglalás. Mindkét e-mail kizárólag a tesztcímre érkezik. ";
-    guestIntro = notice+guestIntro;
-    restaurantIntro = notice+restaurantIntro;
-  }
   if(!isTest && process.env.INQUIRY_LIVE_EMAILS_ENABLED !== "true")return NextResponse.json({error:"Az éles értesítések még nincsenek engedélyezve."},{status:503});
   const payload={ request_id:requestId, event: type==="contact"?"contact.created":"reservation.requested",is_test:isTest,...recipients,customer_name:name,guest_email_original:recipients.original_guest_email_suppressed?undefined:email,subject_restaurant:subject,subject_guest:subject.replace("új ","")+" – beérkezett",restaurant_html:html(heading,restaurantIntro,rows,"A vendégnek szóló igényt az étterem munkatársa kezelje."),guest_html:html(heading,guestIntro,rows,guestFooter)};
   try {
