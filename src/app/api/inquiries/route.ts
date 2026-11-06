@@ -64,9 +64,9 @@ export async function POST(req: NextRequest) {
   } else {
     const date=get("date",10),time=get("time",5),guests=Number(get("guests",3)),note=get("note",1200);
     const d = /^\d{4}-\d{2}-\d{2}$/.test(date) ? new Date(date+"T12:00:00Z") : new Date("invalid");
-    if(!Number.isFinite(d.getTime()) || d.toISOString().slice(0,10)!==date || !/^(?:[01]\d|2[0-6]):[0-5]\d$/.test(time) || !Number.isInteger(guests) || !(guests>=1&&guests<=20))return NextResponse.json({error:"Ellenőrizze a foglalási adatokat."},{status:400});
+    if(!Number.isFinite(d.getTime()) || d.toISOString().slice(0,10)!==date || !/^(?:[01]\d|2[0-3]):[0-5]\d$/.test(time) || !Number.isInteger(guests) || !(guests>=1&&guests<=20))return NextResponse.json({error:"Ellenőrizze a foglalási adatokat."},{status:400});
     const timeMinutes=Number(time.slice(0,2))*60+Number(time.slice(3));
-    const day=d.getUTCDay(),closing=(day===5||day===6)?1620:1320;
+    const day=d.getUTCDay(),closing=(day===0?20:day===5||day===6?22:21)*60;
     if(timeMinutes<600||timeMinutes>=closing) return NextResponse.json({error:"A kiválasztott időpont nyitvatartáson kívül esik."},{status:400});
     const todayParts = new Intl.DateTimeFormat("en-CA",{timeZone:"Europe/Budapest",year:"numeric",month:"2-digit",day:"2-digit"}).formatToParts(new Date());
     const part = (type: string) => todayParts.find(p=>p.type===type)!.value;
