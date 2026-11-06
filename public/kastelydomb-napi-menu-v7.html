@@ -48,6 +48,12 @@ const WEEKS=[{period:'2026. november 2–6.',days:[
 {label:'Szerda',date:'2026-11-04',soup:'Csontleves daragaluskával',A:'Főtt tojás, spenót, tört burgonya',B:'Finomfőzelék, feltét',C:'Natúr szelet pórémártással, párolt rizs'},
 {label:'Csütörtök',date:'2026-11-05',soup:'Árpagyöngyleves',A:'Temesvári szelet, párolt rizs',B:'Töltött csirkecomb, petrezselymes burgonya',C:'Kassai töltött borda (sonka, tojás, zöldborsó), petrezselymes burgonya'},
 {label:'Péntek',date:'2026-11-06',soup:'Bakonyi betyárleves',A:'Morzsás nudli',B:'Káposztás tészta',C:'Pankómorzsában sült csirkemellcsíkok, párolt rizs'}
+]},{period:'2026. november 9–13.',days:[
+{label:'Hétfő',date:'2026-11-09',soup:'Brokkoli krémleves',A:'Sertés rizottó, reszelt sajt',B:'Fokhagymás aprópecsenye, burgonya',C:'Menyecskeláb rántva, pirított burgonya'},
+{label:'Kedd',date:'2026-11-10',soup:'Reszelt tésztaleves',A:'Rakott burgonya',B:'Eszterházi tokány, orsótészta',C:'Csáki töltött borda, párolt rizs'},
+{label:'Szerda',date:'2026-11-11',soup:'Húsleves eperlevéllel',A:'Székelykáposzta',B:'Zöldborsófőzelék, feltét',C:'Parajos penne grillezett csirkefalatokkal'},
+{label:'Csütörtök',date:'2026-11-12',soup:'Magyaros burgonyaleves',A:'Rántott szelet, kukoricás rizs',B:'Sertéssült, gyümölcsmártás, pirított dara',C:'Zöldséges töltött borda, petrezselymes rizs'},
+{label:'Péntek',date:'2026-11-13',soup:'Lencsegulyás',A:'Túrós tészta',B:'Aranygaluska vaníliaöntettel',C:'Sertésszelet parasztosan, tört burgonya'}
 ]}];let activeWeek=0;const WEEK_SELECTIONS=WEEKS.map(w=>w.days.map(()=>({soup:0,A:0,B:0,C:0})));
 const $=id=>document.getElementById(id),fmt=n=>new Intl.NumberFormat('hu-HU').format(n)+' Ft';
 const esc=v=>String(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
