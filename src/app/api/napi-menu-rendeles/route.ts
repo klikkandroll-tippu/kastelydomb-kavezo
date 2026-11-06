@@ -15,6 +15,10 @@ const dishes=[
 ["2026-11-12","Magyaros burgonyaleves","Rántott szelet, kukoricás rizs","Sertéssült, gyümölcsmártás, pirított dara","Zöldséges töltött borda, petrezselymes rizs"],
 ["2026-11-13","Lencsegulyás","Túrós tészta","Aranygaluska vaníliaöntettel","Sertésszelet parasztosan, tört burgonya"]
 ];
+// Single menu catalog for both order validation and the public weekly menu.
+export async function GET(){
+  return NextResponse.json({days:dishes.map(row=>({date:row[0],soup:row[1],A:row[2],B:row[3],C:row[4]}))},{headers:{"Cache-Control":"no-store"}});
+}
 const clean=(x:unknown,max=500)=>typeof x==="string"?x.trim().slice(0,max):"";
 const esc=(x:unknown)=>String(x??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]!));
 const bad=(error:string,status=400)=>NextResponse.json({error},{status,headers:{"Cache-Control":"no-store"}});
