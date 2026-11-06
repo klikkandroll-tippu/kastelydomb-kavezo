@@ -79,13 +79,16 @@ function pruneExpiredSelections(){
     if(!n && qty.soup){/* Keep soup-only selection visible so the choose-main-dish warning can appear. */}
     else if(qty.soup>n){qty.soup=n;changed=true}
     else if(qty.soup<qty.C){qty.soup=qty.C;changed=true}
-    if(changed)removed.push(day.label);
+    // Quantity normalization is not an expired order; do not show a cutoff warning.
   });
   return removed;
 }
 function showExpiredNotice(days){
-  if(!days.length)return;
   const message=$('message');
+  if(!days.length){
+    if(message.textContent.startsWith('A rendelési határidő lejárt, ezért eltávolítottuk')){message.className='';message.textContent='';}
+    return;
+  }
   message.className='error';
   message.textContent='A rendelési határidő lejárt, ezért eltávolítottuk a már nem rendelhető tételeket: '+days.join(', ')+'. Kérjük, ellenőrizze a frissített összesítőt.';
 }
