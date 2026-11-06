@@ -8,7 +8,12 @@ const dishes=[
 ["2026-11-03","Zöldségleves","Bolognai spagetti, reszelt sajt","Vagdalt szelet, párolt rizs","Velővel töltött borda, pirított kockaburgonya"],
 ["2026-11-04","Csontleves daragaluskával","Főtt tojás, spenót, tört burgonya","Finomfőzelék, feltét","Natúr szelet pórémártással, párolt rizs"],
 ["2026-11-05","Árpagyöngyleves","Temesvári szelet, párolt rizs","Töltött csirkecomb, petrezselymes burgonya","Kassai töltött borda (sonka, tojás, zöldborsó), petrezselymes burgonya"],
-["2026-11-06","Bakonyi betyárleves","Morzsás nudli","Káposztás tészta","Pankómorzsában sült csirkemellcsíkok, párolt rizs"]
+["2026-11-06","Bakonyi betyárleves","Morzsás nudli","Káposztás tészta","Pankómorzsában sült csirkemellcsíkok, párolt rizs"],
+["2026-11-09","Brokkoli krémleves","Sertés rizottó, reszelt sajt","Fokhagymás aprópecsenye, burgonya","Menyecskeláb rántva, pirított burgonya"],
+["2026-11-10","Reszelt tésztaleves","Rakott burgonya","Eszterházi tokány, orsótészta","Csáki töltött borda, párolt rizs"],
+["2026-11-11","Húsleves eperlevéllel","Székelykáposzta","Zöldborsófőzelék, feltét","Parajos penne grillezett csirkefalatokkal"],
+["2026-11-12","Magyaros burgonyaleves","Rántott szelet, kukoricás rizs","Sertéssült, gyümölcsmártás, pirított dara","Zöldséges töltött borda, petrezselymes rizs"],
+["2026-11-13","Lencsegulyás","Túrós tészta","Aranygaluska vaníliaöntettel","Sertésszelet parasztosan, tört burgonya"]
 ];
 const clean=(x:unknown,max=500)=>typeof x==="string"?x.trim().slice(0,max):"";
 const esc=(x:unknown)=>String(x??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]!));
