@@ -42,22 +42,10 @@
 <div class="panel panel-full"><h3>3. Megrendelő adatai</h3><input id="isCompany" type="checkbox" class="hide" tabindex="-1" aria-hidden="true"><div class="customer-type"><label class="choice"><input type="radio" name="customerType" value="private" checked> Magánszemélyként rendelek</label><label class="choice"><input type="radio" name="customerType" value="company"> Cég nevében rendelek</label></div><div id="companyFields" class="form-grid single-col hide"><label class="field">Cégnév *<input id="companyName" autocomplete="organization"></label><label class="field">Székhely / számlázási cím *<input id="companyAddress"></label><label class="field">Adószám *<input id="taxNumber" placeholder="12345678-1-12"></label><p class="fineprint">A számlázási cím és a szállítási cím külön kezelhető.</p></div><div class="form-grid single-col"><label class="field">Név *<input id="customer" autocomplete="name"></label><label class="field">Telefonszám *<input id="phone" autocomplete="tel" type="tel"></label><label class="field">E-mail <span id="emailRequiredMark" class="required hide">*</span><input id="email" autocomplete="email" type="email"></label></div></div><div class="panel payment-block"><h3>4. Fizetési mód</h3><div class="payment-options"><label class="choice payment-choice"><input type="radio" name="payment" value="cod-cash" checked> Készpénzzel fizetek átvételkor</label><label class="choice payment-choice"><input type="radio" name="payment" value="cod-card"> Bankkártyával fizetek átvételkor</label><label class="choice payment-choice"><input type="radio" name="payment" value="online-card" disabled> Online fizetés bankkártyával (Hamarosan)</label><label class="choice payment-choice"><input type="radio" name="payment" value="transfer"> Átutalás</label></div><div id="transferDetails" class="transfer-details hide"><h4>Banki átutalás</h4><strong>Sze-Pa-Szolg 2012 Kft.</strong><p>Bankszámlaszám: <strong>50420582-10001617</strong></p><p>Közlemény: <strong id="transferRef">Beküldés után</strong></p></div></div></div><aside class="panel recap recap-panel"><h3>5. Rendelés összesítő</h3><div class="customer-review customer-review--top"><div class="review-line"><span>Rendelési azonosító</span><strong id="reviewRef">Beküldés után</strong></div><div id="reviewCompanyRow" class="review-line hide"><span>Cég</span><strong id="reviewCompany">—</strong></div><div class="review-line"><span>Név</span><strong id="reviewName">—</strong></div><div class="review-line"><span>Átvétel módja</span><strong id="fulfillmentLabel">Helyben fogyasztás</strong></div><div class="review-line"><span>Átvétel / szállítási cím</span><strong id="reviewAddress">Helyben fogyasztás</strong></div><div class="review-line"><span>Fizetés módja</span><strong id="reviewPayment">Átvételkor készpénz</strong></div></div><p class="note" id="subscriptionLabel"></p><div id="summaryLines" class="summary-lines"></div><div class="recap-total"><span>Menük összesen</span><strong id="grandTotal" class="summary-grand tabular">0 Ft</strong></div><p class="note" id="priceNote"></p><label style="display:flex;gap:10px;align-items:flex-start;margin:14px 0;font-size:13px;line-height:1.5"><input id="privacyConsent" type="checkbox" style="margin-top:4px"> <span>Megismertem az <a href="/adatkezelesi-tajekoztato" target="_blank" rel="noopener" style="text-decoration:underline">adatkezelési tájékoztatót</a>, és hozzájárulok a rendelési adataim kezeléséhez. *</span></label><button class="pill" id="check" type="button">Megrendelés</button><p class="note hide" id="transferNote">Megrendelést követően egy értesítő e-mailt küldünk az utaláshoz szükséges információkkal.</p><div id="message" aria-live="polite"></div><p class="note" style="margin-top:18px">A rendelési igény elküldése után az étterem külön visszaigazolja az elfogadást.</p></aside></div></div></section></main><footer class="footer"><div class="wrap"><h3>Kastélydomb Kávézó és Étterem</h3><p>8100 Várpalota, Mandulás lakótelep · <a href="tel:+36302644081">+36 30 264 4081</a></p><div class="footer-menu-note">© 2026 Kastélydomb Kávézó és Étterem</div></div></footer><script>
 // A heti kínálat később admin-felületről tölthető; most ezt az adatblokkot kell frissíteni.
 const RATES={yes:{AB:1700,C:2300,soup:200},no:{C:2800}};
-const WEEKS=[{period:'2026. november 2–6.',days:[
-{label:'Hétfő',date:'2026-11-02',soup:'Vöröslencseleves',A:'Karfiolos-sajtos sertéstokány, párolt rizs',B:'Hagymás csirkemáj, burgonya',C:'Borzas szelet, párolt rizs'},
-{label:'Kedd',date:'2026-11-03',soup:'Zöldségleves',A:'Bolognai spagetti, reszelt sajt',B:'Vagdalt szelet, párolt rizs',C:'Velővel töltött borda, pirított kockaburgonya'},
-{label:'Szerda',date:'2026-11-04',soup:'Csontleves daragaluskával',A:'Főtt tojás, spenót, tört burgonya',B:'Finomfőzelék, feltét',C:'Natúr szelet pórémártással, párolt rizs'},
-{label:'Csütörtök',date:'2026-11-05',soup:'Árpagyöngyleves',A:'Temesvári szelet, párolt rizs',B:'Töltött csirkecomb, petrezselymes burgonya',C:'Kassai töltött borda (sonka, tojás, zöldborsó), petrezselymes burgonya'},
-{label:'Péntek',date:'2026-11-06',soup:'Bakonyi betyárleves',A:'Morzsás nudli',B:'Káposztás tészta',C:'Pankómorzsában sült csirkemellcsíkok, párolt rizs'}
-]},{period:'2026. november 9–13.',days:[
-{label:'Hétfő',date:'2026-11-09',soup:'Brokkoli krémleves',A:'Sertés rizottó, reszelt sajt',B:'Fokhagymás aprópecsenye, burgonya',C:'Menyecskeláb rántva, pirított burgonya'},
-{label:'Kedd',date:'2026-11-10',soup:'Reszelt tésztaleves',A:'Rakott burgonya',B:'Eszterházi tokány, orsótészta',C:'Csáki töltött borda, párolt rizs'},
-{label:'Szerda',date:'2026-11-11',soup:'Húsleves eperlevéllel',A:'Székelykáposzta',B:'Zöldborsófőzelék, feltét',C:'Parajos penne grillezett csirkefalatokkal'},
-{label:'Csütörtök',date:'2026-11-12',soup:'Magyaros burgonyaleves',A:'Rántott szelet, kukoricás rizs',B:'Sertéssült, gyümölcsmártás, pirított dara',C:'Zöldséges töltött borda, petrezselymes rizs'},
-{label:'Péntek',date:'2026-11-13',soup:'Lencsegulyás',A:'Túrós tészta',B:'Aranygaluska vaníliaöntettel',C:'Sertésszelet parasztosan, tört burgonya'}
-]}];let activeWeek=0;const WEEK_SELECTIONS=WEEKS.map(w=>w.days.map(()=>({soup:0,A:0,B:0,C:0})));
+let WEEKS=[];let activeWeek=0;let WEEK_SELECTIONS=[];
 const $=id=>document.getElementById(id),fmt=n=>new Intl.NumberFormat('hu-HU').format(n)+' Ft';
 const esc=v=>String(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-let selected=WEEK_SELECTIONS[0];
+let selected=[];
 // A rendelési határidőket mindig magyarországi helyi idő szerint ellenőrizzük.
 // Ugyanaz az Europe/Budapest helyi dátum és percpontosságú határidő, mint az API-ban.
 const budapestNow=()=>{const parts=new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/Budapest',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).formatToParts(new Date());const val=key=>parts.find(p=>p.type===key).value;return {date:val('year')+'-'+val('month')+'-'+val('day'),minutes:Number(val('hour'))*60+Number(val('minute'))}};
@@ -168,7 +156,43 @@ $('check').addEventListener('click',async()=>{
   }catch(err){msg.className='error';msg.textContent=err.message||'Küldési hiba. Kérjük, próbálja újra.';sendingOrder=false;update()}
   msg.scrollIntoView({behavior:'smooth',block:'nearest'});
 });
-draw();
+// The server's order-validated catalog is the single source for weekly menus.
+async function loadOrderableWeeks(){
+  try{
+    const response=await fetch('/api/napi-menu-rendeles',{method:'GET',cache:'no-store'});
+    if(!response.ok)throw new Error('A heti menü lekérése sikertelen.');
+    const data=await response.json();
+    if(!Array.isArray(data.days)||!data.days.length)throw new Error('A heti menü még nincs feltöltve.');
+    const grouped=new Map();
+    for(const row of data.days){
+      if(!row||!/^\\d{4}-\\d{2}-\\d{2}$/.test(row.date)||['soup','A','B','C'].some(key=>typeof row[key]!=='string'))throw new Error('Hibás heti menüadat.');
+      const date=new Date(row.date+'T12:00:00Z');
+      if(Number.isNaN(date.getTime())||date.toISOString().slice(0,10)!==row.date)throw new Error('Hibás menüdátum.');
+      const weekday=(date.getUTCDay()+6)%7,dateMonday=new Date(date);
+      dateMonday.setUTCDate(dateMonday.getUTCDate()-weekday);
+      const key=dateMonday.toISOString().slice(0,10);
+      if(!grouped.has(key))grouped.set(key,[]);
+      const label=['Hétfő','Kedd','Szerda','Csütörtök','Péntek','Szombat','Vasárnap'][weekday];
+      grouped.get(key).push({label,date:row.date,soup:row.soup,A:row.A,B:row.B,C:row.C});
+    }
+    WEEKS=[...grouped].sort((a,b)=>a[0].localeCompare(b[0])).map(([,days])=>{
+      days.sort((a,b)=>a.date.localeCompare(b.date));
+      const start=new Date(days[0].date+'T12:00:00Z');
+      const month=new Intl.DateTimeFormat('hu-HU',{month:'long',timeZone:'UTC'}).format(start);
+      const startDay=Number(days[0].date.slice(8)),endDay=Number(days[days.length-1].date.slice(8));
+      return {period:start.getUTCFullYear()+'. '+month+' '+startDay+'–'+endDay+'.',days};
+    });
+    WEEK_SELECTIONS=WEEKS.map(w=>w.days.map(()=>({soup:0,A:0,B:0,C:0})));
+    activeWeek=0;selected=WEEK_SELECTIONS[0];
+    draw();
+  }catch(error){
+    const rows=document.getElementById('weekRows');
+    if(rows)rows.textContent='A rendelhető heti menü nem tölthető be. Kérjük, próbálja újra később.';
+    const button=document.getElementById('check');if(button)button.disabled=true;
+    console.error('Weekly menu catalog failed to load',error);
+  }
+}
+loadOrderableWeeks();
 // Nyitott oldalon is azonnal frissüljön az elérhetőség, amikor lejár egy határidő.
 document.addEventListener('visibilitychange',()=>{if(!document.hidden&&!sendingOrder)draw()});
 window.addEventListener('focus',()=>{if(!sendingOrder)draw()});
