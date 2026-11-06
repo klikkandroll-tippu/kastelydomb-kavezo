@@ -165,7 +165,7 @@ async function loadOrderableWeeks(){
     if(!Array.isArray(data.days)||!data.days.length)throw new Error('A heti menü még nincs feltöltve.');
     const grouped=new Map();
     for(const row of data.days){
-      if(!row||!/^\\d{4}-\\d{2}-\\d{2}$/.test(row.date)||['soup','A','B','C'].some(key=>typeof row[key]!=='string'))throw new Error('Hibás heti menüadat.');
+      if(!row||!/^\d{4}-\d{2}-\d{2}$/.test(row.date)||['soup','A','B','C'].some(key=>typeof row[key]!=='string'))throw new Error('Hibás heti menüadat.');
       const date=new Date(row.date+'T12:00:00Z');
       if(Number.isNaN(date.getTime())||date.toISOString().slice(0,10)!==row.date)throw new Error('Hibás menüdátum.');
       const weekday=(date.getUTCDay()+6)%7,dateMonday=new Date(date);
