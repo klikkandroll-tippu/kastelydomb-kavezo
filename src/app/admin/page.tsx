@@ -66,6 +66,9 @@ export default function AdminPage() {
           setContacts(Array.isArray(payload.contacts) ? payload.contacts : []);
           setReservations(Array.isArray(payload.reservations) ? payload.reservations : []);
           setChristmas(Array.isArray(payload.christmas) ? payload.christmas : []);
+          if (payload.partial && Array.isArray(payload.errors)) {
+            failures.push("Egyes adatforrások nem tölthetők be: " + payload.errors.join(", ") + ".");
+          }
         }
       }
       if (failures.length) setError(failures.join(" "));
