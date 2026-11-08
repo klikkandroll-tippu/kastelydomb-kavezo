@@ -30,6 +30,17 @@ const sections: { id: Section; label: string }[] = [
 const dateHU = (value: unknown) => typeof value === "string" && value ? new Date(value).toLocaleDateString("hu-HU") : "—";
 const price = (n: unknown) => typeof n === "number" ? new Intl.NumberFormat("hu-HU").format(n) + " Ft" : "—";
 const asText = (v: unknown) => typeof v === "string" || typeof v === "number" ? String(v) : "—";
+const timeHU = (v: unknown) => typeof v === "string" && v ? new Date(v).toLocaleString("hu-HU",{timeZone:"Europe/Budapest",year:"numeric",month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit"}) : "—";
+const statusHU = (entry:Entry) => entry.confirmed_at || entry.status==="confirmed" ? "Visszaigazolva" :
+  entry.status==="cancelled" ? "Lemondva" :
+  entry.status==="closed" ? "Lezárva" :
+  entry.status==="in_progress" ? "Folyamatban" : "Visszaigazolásra vár";
+const fulfillmentHU=(value:unknown)=>({delivery:"Kiszállítás",pickup:"Elvitel",dine_in:"Helyben fogyasztás"} as Record<string,string>)[String(value)]||asText(value);
+const paymentHU=(value:unknown)=>({cash:"Készpénz",card:"Bankkártya",szep:"SZÉP-kártya",cash_on_pickup:"Készpénz az átvételkor",card_on_pickup:"Bankkártya az átvételkor",company_transfer:"Céges átutalás"} as Record<string,string>)[String(value)]||asText(value);
+const fieldValue=(v:unknown)=>typeof v==="string"&&v.trim()?v:asText(v);
+function Info({label,value}:{label:string,value:unknown}) {
+  return <div className="kd-info"><span>{label}</span><strong>{fieldValue(value)}</strong></div>;
+}
 function DateItems({ items }: { items: unknown }) {
   if (!Array.isArray(items)) return <div>Nincsenek tételek.</div>;
   const byDay = new Map<string, Entry[]>();
@@ -48,6 +59,7 @@ export default function AdminPage() {
   const [loading, setLoading] = useState(true);
   const [section, setSection] = useState<Section>("home");
   const [selected, setSelected] = useState<Entry | null>(null);
+  const [confirming, setConfirming] = useState(false);
   const [orders, setOrders] = useState<Entry[]>([]);
   const [contacts, setContacts] = useState<Entry[]>([]);
   const [reservations, setReservations] = useState<Entry[]>([]);
@@ -121,10 +133,31 @@ export default function AdminPage() {
     section === "reservations" ? reservations : section === "contacts" ? contacts :
     section === "customers" ? allCustomers : [];
   const filtered = list.filter(r => {
-    const search = [r.customer_name,r.customer_email,r.customer_phone,r.order_number,r.request_id].join(" ").toLowerCase();
+    const search = [r.customer_name,r.customer_email,r.customer_phone,r.order_number,r.form_number,r.request_id].join(" ").toLowerCase();
     const created = String(r.reservation_date || r.created_at || "").slice(0,10);
     return (!query || search.includes(query.toLowerCase())) && (!from || created >= from) && (!to || created <= to);
   });
+  async function confirmSelected(){
+    if(!selected || confirming || selected.confirmed_at) return;
+    const kind=section==="contacts"?"contacts":section==="reservations"?"reservations":
+       section==="menu"?"menu":section==="special"?"special":null;
+    if(!kind || typeof selected.id!=="string") return;
+    setConfirming(true);setError("");
+    try{
+      const response=await fetch("/api/admin/confirm",{method:"POST",headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({kind,id:selected.id})});
+      const result=await response.json();
+      if(!response.ok || !result.ok) throw Error(result.error || "Nem sikerült a visszaigazolás.");
+      const updated={...selected,status:"confirmed",confirmed_at:result.confirmed_at};
+      setSelected(updated);
+      const updater=(rows:Entry[])=>rows.map(row=>row.id===updated.id?{...row,...updated}:row);
+      if(kind==="contacts")setContacts(updater);
+      else if(kind==="reservations")setReservations(updater);
+      else if(kind==="menu")setOrders(updater);
+      else setChristmas(updater);
+    }catch(e){setError(e instanceof Error?e.message:"Hiba történt a visszaigazolás során.");}
+    finally{setConfirming(false);}
+  }
   async function login() {
     setLoading(true); setError("");
     try {
@@ -144,7 +177,7 @@ export default function AdminPage() {
     { name: "Mai asztalfoglalások", value: reservations.filter(r => r.reservation_date === today).length, target: "reservations", icon: "reservations" },
     { name: "Kiszállítás", value: deliveries.length, target: "deliveries", icon: "deliveries" },
     { name: "Beérkezett rendelések", value: christmas.length, target: "special", icon: "special" },
-    { name: "Új megkeresések", value: contacts.filter(r => r.status === "new").length, target: "contacts", icon: "contacts" },
+    { name: "Új megkeresések", value: contacts.filter(r => !r.confirmed_at).length, target: "contacts", icon: "contacts" },
   ];
   return <div className="kd-app">
     <style>{`
@@ -188,11 +221,26 @@ export default function AdminPage() {
       .kd-day{background:#f8faf8;border:1px solid var(--line);padding:15px;margin:12px 0;border-radius:12px}
       .kd-details{display:grid;grid-template-columns:160px 1fr;gap:12px;padding:12px 0;border-bottom:1px solid #ecf0ed;word-break:break-word}
       .kd-login{max-width:410px;margin:12vh auto;padding:30px}.kd-login input{padding:12px;width:100%;box-sizing:border-box;border:1px solid var(--line);border-radius:9px;margin:15px 0}
+      .kd-modalhead{display:flex;justify-content:space-between;align-items:center;gap:10px;border-bottom:1px solid var(--line);padding-bottom:15px;margin-bottom:18px}
+      .kd-modalhead h2{font-size:20px;margin:0;font-weight:800;letter-spacing:-.2px}
+      .kd-close{border:0;background:#eaf1eb;border-radius:9px;padding:7px 12px;font-size:21px;font-weight:700;cursor:pointer}
+      .kd-section{border:1px solid #e1e9e2;padding:16px;border-radius:12px;margin:13px 0}
+      .kd-section h3{font-size:16px;margin:0 0 13px;font-weight:800}
+      .kd-section p{margin:8px 0;white-space:pre-wrap}
+      .kd-info-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+      .kd-info{background:#f8faf8;border-radius:10px;padding:10px 12px;min-height:64px;overflow-wrap:anywhere}
+      .kd-info>span{color:#698073;display:block;font-size:12px;font-weight:740;margin-bottom:3px}
+      .kd-info>strong{font-size:14px;font-weight:750}
+      .kd-modalactions{display:flex;gap:10px;align-items:center;margin-top:17px}
+      .kd-pending{color:#ab3333!important;font-weight:800}.kd-success{color:#20633d!important;font-weight:800}
+      .kd-status{border-radius:99px;padding:4px 8px;white-space:nowrap;font-size:12px}
+      .kd-items-title{margin-top:20px!important}.kd-muted{color:#65776c;font-size:12px}
+      @media(max-width:780px){.kd-info-grid{grid-template-columns:1fr}.kd-drawer{padding:16px}}
       .kd-error{color:#a03232;margin:12px 0}
       @media(max-width:1200px){.kd-grid{grid-template-columns:repeat(3,1fr)}.kd-main{padding:23px}.kd-nav{width:215px}}
       @media(max-width:800px){.kd-app{display:block}.kd-nav{width:100%;height:auto;position:static;display:flex;flex-wrap:wrap;gap:5px;padding:12px}.kd-nav h2,.kd-nav small,.kd-sidefoot{width:100%}.kd-link{width:auto;font-size:12px;padding:9px}.kd-main{padding:16px}.kd-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.kd-overview-grid{grid-template-columns:1fr}}
     `}</style>    {!authed ? <div className="kd-login kd-card"><h1>Kastélydomb admin</h1><p>Védett tesztüzemi adatnézet</p><input aria-label="Adminjelszó" type="password" placeholder="Adminjelszó" value={password} onChange={e => setPassword(e.target.value)} onKeyDown={e => { if (e.key === "Enter") void login(); }} /><button className="kd-btn kd-primary" disabled={loading} onClick={() => void login()}>Belépés</button>{error && <p className="kd-error">{error}</p>}</div> :
-    <><aside className="kd-nav"><h2>Kastélydomb</h2><small>Kávézó és Étterem · Admin</small>{sections.map(s => <button key={s.id} className={"kd-link "+(section===s.id?"selected":"")} onClick={() => { setSection(s.id); setSelected(null); setFrom(""); setTo(""); setQuery(""); }}><span className="kd-navicon"><Icon name={s.id}/></span>{s.label}</button>)}<div className="kd-sidefoot">Integrációs teszt · valós adatbázis<br/>A műveletek csak olvasási joggal működnek.</div><button className="kd-link" onClick={() => void logout()}>Kijelentkezés</button></aside>
+    <><aside className="kd-nav"><h2>Kastélydomb</h2><small>Kávézó és Étterem · Admin</small>{sections.map(s => <button key={s.id} className={"kd-link "+(section===s.id?"selected":"")} onClick={() => { setSection(s.id); setSelected(null); setFrom(""); setTo(""); setQuery(""); }}><span className="kd-navicon"><Icon name={s.id}/></span>{s.label}</button>)}<div className="kd-sidefoot">Integrációs teszt · valós adatbázis<br/>A visszaigazolás dátummal rögzül.</div><button className="kd-link" onClick={() => void logout()}>Kijelentkezés</button></aside>
     <main className="kd-main"><div className="kd-top"><h1 className="kd-title">{sections.find(s => s.id===section)?.label}</h1><span className="kd-header"><span className="kd-pill">Integrációs teszt</span><button className="kd-btn" onClick={() => void refresh()}>Frissítés</button></span></div>
       
       {error && <p className="kd-error">{error}</p>}
@@ -202,13 +250,38 @@ export default function AdminPage() {
       {!["home","settings"].includes(section) && <div className="kd-card">
         <div className="kd-actions"><input placeholder="Keresés: név, azonosító" value={query} onChange={e => setQuery(e.target.value)}/><label> -tól <input type="date" value={from} onChange={e => setFrom(e.target.value)}/></label><label> -ig <input type="date" value={to} onChange={e => setTo(e.target.value)}/></label>{section==="menu" && <label><input type="checkbox" checked={showArchived} onChange={e => setShowArchived(e.target.checked)}/> Lejárt rendelések is</label>}</div>
         <p><strong>{filtered.length} találat</strong>{loading?" · Betöltés...":""}</p>
-        <div className="kd-table-wrap"><table className="kd-table"><thead><tr><th>Azonosító</th><th>Ügyfél</th><th>Dátum</th><th>Állapot</th><th>Összeg</th><th>Művelet</th></tr></thead><tbody>{filtered.map((r,i) => <tr key={String(r.id || r.customer_email || i)}><td>{asText(r.order_number || r.request_id)}</td><td>{asText(r.customer_name)}</td><td>{dateHU(r.reservation_date || r.created_at)}</td><td>{asText(r.status)}</td><td>{price(r.total_huf)}</td><td><button className="kd-btn" onClick={() => setSelected(r)}>Megnézem</button></td></tr>)}</tbody></table></div>
+        <div className="kd-table-wrap"><table className="kd-table"><thead><tr><th>Azonosító</th><th>Ügyfél</th><th>Dátum</th><th>Állapot</th><th>Összeg</th><th>Művelet</th></tr></thead><tbody>{filtered.map((r,i) => <tr key={String(r.id || r.customer_email || i)}><td>{asText(r.form_number || r.order_number || r.request_id)}</td><td>{asText(r.customer_name)}</td><td>{dateHU(r.reservation_date || r.created_at)}</td><td><span className={"kd-status "+(r.confirmed_at?"kd-success":"kd-pending")}>{statusHU(r)}</span></td><td>{price(r.total_huf)}</td><td><button className="kd-btn" onClick={() => setSelected(r)}>Megnézem</button></td></tr>)}</tbody></table></div>
       </div>}
     </main></>}
-    {selected && <div className="kd-drawer-cover" onClick={() => setSelected(null)}><aside role="dialog" aria-modal="true" aria-label="Részletek" className="kd-drawer" onClick={e => e.stopPropagation()}><div className="kd-top"><h2>Részletek</h2><button className="kd-btn" onClick={() => setSelected(null)}>Bezárás</button></div>
-      <h3>Ügyféladatok</h3>{(["customer_name","customer_email","customer_phone","delivery_address"] as const).map(k => <div className="kd-details" key={k}><b>{k}</b><span>{asText(selected[k])}</span></div>)}
-      <h3>Megrendelés / kérés</h3>{(["order_number","request_id","reservation_date","reservation_time","guest_count","fulfillment","payment_method","total_huf","status","confirmed_at","message","guest_notes","notes","internal_notes"] as const).filter(k=>selected[k]!==undefined).map(k=><div className="kd-details" key={k}><b>{k}</b><span>{asText(selected[k])}</span></div>)}
-      <h3>Napi / termékenkénti tételek</h3><DateItems items={selected.items}/><p>Ebben a tesztkiadásban módosítás és pénzügyi lezárás nem engedélyezett.</p>
+    {selected && <div className="kd-drawer-cover" onClick={() => setSelected(null)}><aside role="dialog" aria-modal="true" aria-label="Részletek" className="kd-drawer" onClick={e=>e.stopPropagation()}>
+      <div className="kd-modalhead"><h2>{section==="contacts"?"Megkeresés":section==="reservations"?"Asztalfoglalás":section==="menu"?"Napi menü rendelés":"Rendelés"} · {asText(selected.form_number||selected.order_number||selected.request_id)}</h2><button className="kd-close" aria-label="Bezárás" onClick={()=>setSelected(null)}>×</button></div>
+      <div className="kd-section"><h3>Ügyféladatok</h3><div className="kd-info-grid">
+        <Info label="Név" value={selected.customer_name}/>
+        <Info label="E-mail" value={selected.customer_email}/>
+        <Info label="Telefon" value={selected.customer_phone}/>
+        {selected.delivery_address&&<Info label="Szállítási cím" value={selected.delivery_address}/>}
+      </div></div>
+      {(section==="reservations"||section==="menu"||section==="special")&&<div className="kd-section">
+        <h3>{section==="reservations"?"Asztalfoglalás adatai":"Megrendelés adatai"}</h3><div className="kd-info-grid">
+          {selected.reservation_date&&<Info label="Foglalás napja" value={dateHU(selected.reservation_date)}/>}
+          {selected.reservation_time&&<Info label="Érkezés ideje" value={selected.reservation_time}/>}
+          {selected.guest_count!=null&&<Info label="Létszám" value={String(selected.guest_count)+" fő"}/>}
+          {selected.fulfillment&&<Info label="Átvétel módja" value={fulfillmentHU(selected.fulfillment)}/>}
+          {selected.payment_method&&<Info label="Fizetés módja" value={paymentHU(selected.payment_method)}/>}
+          {selected.total_huf!=null&&<Info label="Teljes összeg" value={price(selected.total_huf)}/>}
+        </div>{Array.isArray(selected.items)&&<><h3 className="kd-items-title">Rendelt tételek</h3><DateItems items={selected.items}/></>}
+      </div>}
+      {(selected.message||selected.guest_notes||selected.notes)&&<div className="kd-section"><h3>{section==="contacts"?"Üzenet":"Megjegyzés"}</h3><p>{asText(selected.message||selected.guest_notes||selected.notes)}</p></div>}
+      <div className="kd-section"><h3>Visszaigazolás</h3>
+        <div className="kd-info-grid">
+          <div className="kd-info"><span>Állapot</span><strong className={selected.confirmed_at?"kd-success":"kd-pending"}>{statusHU(selected)}</strong></div>
+          <Info label="Visszaigazolás dátuma" value={timeHU(selected.confirmed_at)}/>
+        </div>
+        {(!selected.confirmed_at && ["contacts","reservations","menu","special"].includes(section)) &&
+          <div className="kd-modalactions"><button className="kd-btn kd-primary" disabled={confirming} onClick={()=>void confirmSelected()}>{confirming?"Mentés folyamatban…":"Visszaigazolva"}</button></div>}
+      </div>
+      {selected.internal_notes&&<div className="kd-section"><h3>Belső megjegyzés</h3><p>{asText(selected.internal_notes)}</p></div>}
+      <p className="kd-muted">A visszaigazolás rögzítése önmagában nem küld külön e-mailt.</p>
     </aside></div>}
   </div>;
 }
