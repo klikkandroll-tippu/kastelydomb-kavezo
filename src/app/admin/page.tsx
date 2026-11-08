@@ -253,35 +253,41 @@ export default function AdminPage() {
         <div className="kd-table-wrap"><table className="kd-table"><thead><tr><th>Azonosító</th><th>Ügyfél</th><th>Dátum</th><th>Állapot</th><th>Összeg</th><th>Művelet</th></tr></thead><tbody>{filtered.map((r,i) => <tr key={String(r.id || r.customer_email || i)}><td>{asText(r.form_number || r.order_number || r.request_id)}</td><td>{asText(r.customer_name)}</td><td>{dateHU(r.reservation_date || r.created_at)}</td><td><span className={"kd-status "+(r.confirmed_at?"kd-success":"kd-pending")}>{statusHU(r)}</span></td><td>{price(r.total_huf)}</td><td><button className="kd-btn" onClick={() => setSelected(r)}>Megnézem</button></td></tr>)}</tbody></table></div>
       </div>}
     </main></>}
-    {selected && <div className="kd-drawer-cover" onClick={() => setSelected(null)}><aside role="dialog" aria-modal="true" aria-label="Részletek" className="kd-drawer" onClick={e=>e.stopPropagation()}>
-      <div className="kd-modalhead"><h2>{section==="contacts"?"Megkeresés":section==="reservations"?"Asztalfoglalás":section==="menu"?"Napi menü rendelés":"Rendelés"} · {asText(selected.form_number||selected.order_number||selected.request_id)}</h2><button className="kd-close" aria-label="Bezárás" onClick={()=>setSelected(null)}>×</button></div>
-      <div className="kd-section"><h3>Ügyféladatok</h3><div className="kd-info-grid">
-        <Info label="Név" value={selected.customer_name}/>
-        <Info label="E-mail" value={selected.customer_email}/>
-        <Info label="Telefon" value={selected.customer_phone}/>
-        {Boolean(selected.delivery_address)&&<Info label="Szállítási cím" value={selected.delivery_address}/>}
-      </div></div>
-      {(section==="reservations"||section==="menu"||section==="special")&&<div className="kd-section">
-        <h3>{section==="reservations"?"Asztalfoglalás adatai":"Megrendelés adatai"}</h3><div className="kd-info-grid">
-          {Boolean(selected.reservation_date)&&<Info label="Foglalás napja" value={dateHU(selected.reservation_date)}/>}
-          {Boolean(selected.reservation_time)&&<Info label="Érkezés ideje" value={selected.reservation_time}/>}
-          {Boolean(selected.guest_count!=null)&&<Info label="Létszám" value={String(selected.guest_count)+" fő"}/>}
-          {Boolean(selected.fulfillment)&&<Info label="Átvétel módja" value={fulfillmentHU(selected.fulfillment)}/>}
-          {Boolean(selected.payment_method)&&<Info label="Fizetés módja" value={paymentHU(selected.payment_method)}/>}
-          {Boolean(selected.total_huf!=null)&&<Info label="Teljes összeg" value={price(selected.total_huf)}/>}
-        </div>{Array.isArray(selected.items)&&<><h3 className="kd-items-title">Rendelt tételek</h3><DateItems items={selected.items}/></>}
-      </div>}
-      {Boolean(selected.message||selected.guest_notes||selected.notes)&&<div className="kd-section"><h3>{section==="contacts"?"Üzenet":"Megjegyzés"}</h3><p>{asText(selected.message||selected.guest_notes||selected.notes)}</p></div>}
-      <div className="kd-section"><h3>Visszaigazolás</h3>
-        <div className="kd-info-grid">
+    {selected !== null ? <div className="kd-drawer-cover" onClick={() => setSelected(null)}>
+      <aside role="dialog" aria-modal="true" aria-label="Részletek" className="kd-drawer" onClick={e => e.stopPropagation()}>
+        <div className="kd-modalhead">
+          <h2>{section==="contacts"?"Megkeresés":section==="reservations"?"Asztalfoglalás":section==="menu"?"Napi menü rendelés":"Rendelés"} · {asText(selected.form_number || selected.order_number || selected.request_id)}</h2>
+          <button className="kd-close" aria-label="Bezárás" onClick={() => setSelected(null)}>×</button>
+        </div>
+        <section className="kd-section"><h3>Ügyféladatok</h3><div className="kd-info-grid">
+          <Info label="Név" value={selected.customer_name}/>
+          <Info label="E-mail" value={selected.customer_email}/>
+          <Info label="Telefon" value={selected.customer_phone}/>
+          {selected.delivery_address ? <Info label="Szállítási cím" value={selected.delivery_address}/> : null}
+        </div></section>
+        {section==="reservations" ? <section className="kd-section"><h3>Foglalás adatai</h3><div className="kd-info-grid">
+          <Info label="Nap" value={dateHU(selected.reservation_date)}/>
+          <Info label="Érkezés" value={selected.reservation_time}/>
+          <Info label="Létszám" value={asText(selected.guest_count)+" fő"}/>
+          <Info label="Megjegyzés" value={selected.guest_notes}/>
+        </div></section> : null}
+        {section==="contacts" ? <section className="kd-section"><h3>Üzenet</h3><p>{asText(selected.message)}</p></section> : null}
+        {(section==="menu" || section==="special" || section==="deliveries") ?
+          <section className="kd-section"><h3>Megrendelés adatai</h3><div className="kd-info-grid">
+            <Info label="Átvétel módja" value={fulfillmentHU(selected.fulfillment)}/>
+            <Info label="Fizetési mód" value={paymentHU(selected.payment_method)}/>
+            <Info label="Teljes összeg" value={price(selected.total_huf)}/>
+            <Info label="Megjegyzés" value={selected.notes}/>
+          </div><h3 className="kd-items-title">Rendelt tételek</h3><DateItems items={selected.items}/></section> : null}
+        <section className="kd-section"><h3>Visszaigazolás</h3><div className="kd-info-grid">
           <div className="kd-info"><span>Állapot</span><strong className={selected.confirmed_at?"kd-success":"kd-pending"}>{statusHU(selected)}</strong></div>
           <Info label="Visszaigazolás dátuma" value={timeHU(selected.confirmed_at)}/>
         </div>
-        {(!selected.confirmed_at && ["contacts","reservations","menu","special"].includes(section)) &&
-          <div className="kd-modalactions"><button className="kd-btn kd-primary" disabled={confirming} onClick={()=>void confirmSelected()}>{confirming?"Mentés folyamatban…":"Visszaigazolva"}</button></div>}
-      </div>
-      {Boolean(selected.internal_notes)&&<div className="kd-section"><h3>Belső megjegyzés</h3><p>{asText(selected.internal_notes)}</p></div>}
-      <p className="kd-muted">A visszaigazolás rögzítése önmagában nem küld külön e-mailt.</p>
-    </aside></div>}
+        {selected.confirmed_at ? null :
+          <div className="kd-modalactions"><button type="button" className="kd-btn kd-primary" disabled={confirming} onClick={() => void confirmSelected()}>{confirming?"Mentés folyamatban…":"Visszaigazolva"}</button></div>}
+        </section>
+        <p className="kd-muted">A visszaigazolás rögzítése önmagában nem küld külön e-mailt.</p>
+      </aside>
+    </div> : null}
   </div>;
 }
