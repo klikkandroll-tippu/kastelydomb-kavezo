@@ -4,6 +4,9 @@ on:
     branches:
       - feature/admin-integration-20261108
   workflow_dispatch:
+  pull_request:
+    branches:
+      - fix/ugyfelteszt-egyseges-20261103
 jobs:
   build:
     runs-on: ubuntu-latest
