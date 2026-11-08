@@ -43,7 +43,7 @@ export async function POST(req:NextRequest){
   if(d.fulfillment==="delivery"&&(!["Várpalota","Inota","Pétfürdő"].includes(town)||!street||!house))return bad("Adja meg a kiszállítás pontos címét.");
   const address=d.fulfillment==="delivery"?[town,street+" "+house,unit,intercom?"Kaputelefon: "+intercom:""].filter(Boolean).join(", "):"";
   if(!Array.isArray(d.days)||!d.days.length||d.days.length>5)return bad("Legalább egy napra válasszon menüt.");
-  const now=current(),used=new Set<string>(),items:Array<{date:string;menu:string;dish:string;quantity:number}>=[];let total=0,orderedDays=0;
+  const now=current(),used=new Set<string>(),items:Array<{date:string;menu:string;dish:string;quantity:number;line_total_huf:number}>=[];let total=0,orderedDays=0;
   for(const day of d.days){
     if(!day||typeof day!=="object"||used.has(day.date))return bad("Duplikált vagy hibás rendelési nap.");
     used.add(day.date);
@@ -60,7 +60,7 @@ export async function POST(req:NextRequest){
       if(now.date>cutoff || now.date===cutoff&&now.minutes>=870)return bad("Az A/B menük előrendelési határideje lejárt.");
     }
     orderedDays++;total+=d.plan==="yes"?(a+b)*1700+c*2300+(s-c)*200:c*2800;
-    [["A",a,2],["B",b,3],["C",c,4],["soup",s,1]].forEach(([menu,q,index])=>{if(Number(q)>0)items.push({date:day.date,menu:String(menu),dish:row[Number(index)],quantity:Number(q)})});
+    [["A",a,2],["B",b,3],["C",c,4],["soup",s,1]].forEach(([menu,q,index])=>{if(Number(q)>0)items.push({date:day.date,menu:String(menu),dish:row[Number(index)],quantity:Number(q),line_total_huf:String(menu)==="soup"?(d.plan==="yes"?(s-c)*200:0):String(menu)==="C"?Number(q)*(d.plan==="yes"?2300:2800):Number(q)*1700})});
   }
   if(d.plan==="yes"&&orderedDays<2)return bad("Előfizetéssel legalább két külön napra kell rendelni.");
   if(total>500000)return bad("Túl nagy rendelés.");
