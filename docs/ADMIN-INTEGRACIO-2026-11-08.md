@@ -42,3 +42,14 @@
 - RELEASE BLOCKER: a napi menü forrás végpontja jelenleg 2026. november 13-ig tartalmaz statikus ételsorokat. A későbbi hetekhez publikált adatbázis-menü és weboldali megjelenítés közös forrása szükséges.
 
 Ne kapcsoljuk be az adatmentési flaget és ne vigyük productionra a PR-t a felsorolt ellenőrzések előtt.
+
+
+## Integrációs tesztág – legutóbbi fejlesztés (2026-11-08 késő este)
+- Kizárólag `feature/admin-integration-20261108` Vercel Preview környezet: `ADMIN_DB_SYNC_ENABLED=true` és `KASTELYDOMB_MODE=test`. Production változatlan.
+- A jelenlegi, ügyfélteszten már meglévő három Zapier webhook URL-jének Preview-only másolata a Vercelben beállítva, az eredeti webhookok és Zaps módosítása nélkül. Napi menühook és aktiváló változó projekt Preview hatókörben létezik.
+- A négy űrlap mostantól ismételt beküldéskor stabil `request_id` UUID-t használ; Supabase `on_conflict` + egyedi DB-index védi a duplikált rekordok ellen.
+- `kastelydomb_notification_outbox` és `kd_claim_notification` RPC: at-most-once webhook-küldési **kísérlet** ugyanazzal az azonosítóval; bizonytalan hálózati eredmény `uncertain` és kézi ellenőrzést igényel. Ez önmagában nem igazolja a Zapier oldali egyszeri kézbesítést.
+- SQL tesztek: menü- és karácsonyi táblában teszt-INSERT sikeres, ROLLBACK történt; notification claim ismétlése `review` választ adott, ROLLBACK történt.
+- Vercel Preview új commitra `READY`. Browserbase teljes E2E futtatás szolgáltatói 402 keretkorlát, a Vercel futási logok lekérése 403 miatt nem volt elérhető. Teljes POST → Supabase → admin → Zapier végigteszt **NOT VERIFIED**.
+- Az adatbázisban korábban lévő 10 teszt-menürendelés nincs törölve. Semmilyen törlés ne történjen az első élő integrációs teszt és az ügyfél jóváhagyása előtt.
+- Éles indulás előtt: az összes tesztadat archiválása/mentése, kapcsolt payment/assignment/outbox rekordok függőségi sorrend szerinti törlése (csak `is_test=true`), új megrendelések `is_test=false` címkézésének igazolása, e-mail-BCC kivezetésének jóváhagyása és produkciós űrlapengedélyezés külön release gate.
