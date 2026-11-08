@@ -147,7 +147,7 @@ $('check').addEventListener('click',async()=>{
   if(!days.length)errors.push('Válasszon rendelhető menüt.');
   if(plan==='yes'&&days.length<2)errors.push('Előfizetéssel legalább két napra rendeljen.');
   if(errors.length){msg.className='error';msg.textContent=errors.join(' ');msg.scrollIntoView({behavior:'smooth',block:'nearest'});return}
-  const payload={customer_name:name,customer_phone:phone,customer_email:email,customer_type:$('isCompany').checked?'company':'private',company_name:$('companyName').value.trim(),company_address:$('companyAddress').value.trim(),tax_number:$('taxNumber').value.trim(),plan,fulfillment:ful,payment,privacy:true,town:$('town').value,street:$('street').value.trim(),house:$('house').value.trim(),unit:$('unit').value.trim(),intercom:$('intercom').value.trim(),days};
+  const payload={request_id:(window.__kdMenuRequestId||(window.__kdMenuRequestId=crypto.randomUUID())),customer_name:name,customer_phone:phone,customer_email:email,customer_type:$('isCompany').checked?'company':'private',company_name:$('companyName').value.trim(),company_address:$('companyAddress').value.trim(),tax_number:$('taxNumber').value.trim(),plan,fulfillment:ful,payment,privacy:true,town:$('town').value,street:$('street').value.trim(),house:$('house').value.trim(),unit:$('unit').value.trim(),intercom:$('intercom').value.trim(),days};
   sendingOrder=true;$('check').disabled=true;msg.className='note';msg.textContent='A rendelés továbbítása folyamatban…';
   try{
     const response=await fetch('/api/napi-menu-rendeles',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
