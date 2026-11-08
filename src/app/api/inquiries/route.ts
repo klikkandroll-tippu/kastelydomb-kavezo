@@ -102,7 +102,7 @@ export async function POST(req: NextRequest) {
       });
     } else {
       await persistAdminRow("kastelydomb_reservations", {
-        request_id: requestId, customer_name: name, customer_email: email,
+        request_id: requestId, form_number:formNumber, customer_name: name, customer_email: email,
         customer_phone: phone, reservation_date: get("date", 10),
         reservation_time: get("time", 5), guest_count: Number(get("guests", 3)),
         guest_notes: get("note", 1200), status: "pending", is_test: isTest,
