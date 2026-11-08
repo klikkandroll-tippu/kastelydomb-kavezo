@@ -2,6 +2,7 @@ import {NextRequest,NextResponse} from "next/server";
 import {emailRecipients} from "@/lib/email-routing";
 import {persistAdminRow,sendZapierOnce} from "@/lib/admin-persistence";
 import {randomUUID} from "node:crypto";
+import {issueFormNumber} from "@/lib/form-identifiers";
 export const runtime="nodejs";
 export const dynamic="force-dynamic";
 const dishes=[
@@ -64,7 +65,9 @@ export async function POST(req:NextRequest){
   }
   if(d.plan==="yes"&&orderedDays<2)return bad("Előfizetéssel legalább két külön napra kell rendelni.");
   if(total>500000)return bad("Túl nagy rendelés.");
-  const id=typeof d.request_id==="string" && /^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/i.test(d.request_id)?d.request_id:randomUUID(),orderNumber="MENU-"+now.date.slice(2).replace(/-/g,"")+"-"+id.slice(0,8).toUpperCase();
+  const id=typeof d.request_id==="string" && /^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/i.test(d.request_id)?d.request_id:randomUUID(),legacyOrderNumber="MENU-"+now.date.slice(2).replace(/-/g,"")+"-"+id.slice(0,8).toUpperCase();
+  let orderNumber=legacyOrderNumber;
+  try{orderNumber=(await issueFormNumber(id,"NM"))||legacyOrderNumber}catch{return bad("A rendelésazonosító létrehozása sikertelen.",503)}
   const fulfillmentHu=d.fulfillment==="delivery"?"Kiszállítás":d.fulfillment==="takeaway"?"Elvitel":"Helyben fogyasztás";
   const paymentHu=d.payment==="transfer"?"Céges banki átutalás":d.payment==="cod-card"?"Bankkártya az átvételkor":"Készpénz az átvételkor";
   const recipients=emailRecipients(email,true);
