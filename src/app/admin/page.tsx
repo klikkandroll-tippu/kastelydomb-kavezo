@@ -45,15 +45,31 @@ export default function AdminPage() {
   const refresh = useCallback(async () => {
     setLoading(true); setError("");
     try {
-      const [o, i] = await Promise.all([
+      // Failing one integration must not hide healthy data from the other.
+      const results = await Promise.allSettled([
         fetch("/api/admin/orders", { cache: "no-store" }),
         fetch("/api/admin/intake", { cache: "no-store" }),
       ]);
-      if (!o.ok || !i.ok) throw Error("Az adatlekérdezés nem sikerült.");
-      const a = await o.json(); const b = await i.json();
-      setOrders(a.orders || []); setContacts(b.contacts || []);
-      setReservations(b.reservations || []); setChristmas(b.christmas || []);
-    } catch (e) { setError(e instanceof Error ? e.message : "Hiba"); }
+      const failures: string[] = [];
+      for (let index = 0; index < results.length; index++) {
+        const label = index === 0 ? "Napi menürendelések" : "Foglalások, kapcsolatfelvételek és alkalmi rendelések";
+        const result = results[index];
+        if (result.status === "rejected") { failures.push(label + ": hálózati hiba."); continue; }
+        const response = result.value;
+        const payload = await response.json().catch(() => null);
+        if (!response.ok || !payload) {
+          failures.push(label + ": " + (payload?.error || ("HTTP " + response.status)));
+          continue;
+        }
+        if (index === 0) setOrders(Array.isArray(payload.orders) ? payload.orders : []);
+        else {
+          setContacts(Array.isArray(payload.contacts) ? payload.contacts : []);
+          setReservations(Array.isArray(payload.reservations) ? payload.reservations : []);
+          setChristmas(Array.isArray(payload.christmas) ? payload.christmas : []);
+        }
+      }
+      if (failures.length) setError(failures.join(" "));
+    } catch (e) { setError(e instanceof Error ? e.message : "Ismeretlen adatlekérési hiba."); }
     finally { setLoading(false); }
   }, []);
   useEffect(() => {
