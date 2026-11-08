@@ -3,15 +3,29 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 
 type Entry = Record<string, unknown>;
 type Section = "home" | "menu" | "special" | "deliveries" | "reservations" | "contacts" | "customers" | "settings";
-const sections: { id: Section; label: string; icon: string }[] = [
-  { id: "home", label: "Kezdőlap", icon: "⌂" },
-  { id: "menu", label: "Napi menü megrendelések", icon: "♧" },
-  { id: "special", label: "Rendelések", icon: "▣" },
-  { id: "deliveries", label: "Kiszállítás", icon: "▱" },
-  { id: "reservations", label: "Asztalfoglalások", icon: "▦" },
-  { id: "contacts", label: "Kapcsolatfelvétel", icon: "✉" },
-  { id: "customers", label: "Ügyfelek", icon: "♙" },
-  { id: "settings", label: "Beállítások", icon: "⚙" },
+const icons: Record<string, string> = {
+ home: '<path d="m3 10 9-7 9 7v10H3z"/><path d="M9 20v-7h6v7"/>',
+ menu: '<path d="M4 3v7m3-7v7M4 7h3m-1 3v11M15 3v8m0-8c4 0 5 4 5 7v2h-5m0-9v18"/>',
+ special: '<path d="M3 9h18v12H3zM2 9l3-6h14l3 6M9 9v5h6V9M7 18h2m6 0h2"/>',
+ deliveries: '<path d="M4 7h11v10H4zM15 11h4l3 3v3h-7zM1 9h2M1 12h2M1 15h2"/><circle cx="8" cy="18" r="2"/><circle cx="19" cy="18" r="2"/>',
+ reservations: '<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M7 3v4m10-4v4M3 10h18m-13 5h3m3 0h3"/>',
+ contacts: '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 7 9-7"/>',
+ customers: '<circle cx="9" cy="8" r="3"/><path d="M3 20v-2a6 6 0 0 1 12 0v2m2-13h3m-3 5h3"/>',
+ settings: '<circle cx="12" cy="12" r="3"/><path d="M12 2v3m0 14v3M2 12h3m14 0h3M5 5l2 2m10 10 2 2M19 5l-2 2M7 17l-2 2"/>',
+};
+function Icon({ name }: { name: string }) {
+  // All paths are static source-controlled SVG markup; no user input enters them.
+  return <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" strokeLinecap="round" aria-hidden="true"><g dangerouslySetInnerHTML={{ __html: icons[name] || icons.home }}/></svg>;
+}
+const sections: { id: Section; label: string }[] = [
+  { id: "home", label: "Kezdőlap" },
+  { id: "menu", label: "Napi menü megrendelések" },
+  { id: "special", label: "Rendelések" },
+  { id: "deliveries", label: "Kiszállítás" },
+  { id: "reservations", label: "Asztalfoglalások" },
+  { id: "contacts", label: "Kapcsolatfelvétel" },
+  { id: "customers", label: "Ügyfelek" },
+  { id: "settings", label: "Beállítások" },
 ];
 const dateHU = (value: unknown) => typeof value === "string" && value ? new Date(value).toLocaleDateString("hu-HU") : "—";
 const price = (n: unknown) => typeof n === "number" ? new Intl.NumberFormat("hu-HU").format(n) + " Ft" : "—";
@@ -125,49 +139,65 @@ export default function AdminPage() {
     await fetch("/api/admin/session", { method: "DELETE" });
     setAuthed(false); setOrders([]); setContacts([]); setReservations([]); setChristmas([]); setSelected(null);
   }
-  const countCards: { name: string; value: number; target: Section }[] = [
-    { name: "Aktuális napi menürendelések", value: activeMenu.length, target: "menu" },
-    { name: "Mai asztalfoglalások", value: reservations.filter(r => r.reservation_date === today).length, target: "reservations" },
-    { name: "Kiszállítások", value: deliveries.length, target: "deliveries" },
-    { name: "Beérkezett rendelések", value: christmas.length, target: "special" },
-    { name: "Kezeletlen kapcsolatfelvételek", value: contacts.filter(r => r.status === "new").length, target: "contacts" },
+  const countCards: { name: string; value: number; target: Section; icon: string }[] = [
+    { name: "Mai menürendelések", value: orders.filter(o=>Array.isArray(o.items) && (o.items as Entry[]).some(i=>i.date===today)).length, target: "menu", icon: "menu" },
+    { name: "Mai asztalfoglalások", value: reservations.filter(r => r.reservation_date === today).length, target: "reservations", icon: "reservations" },
+    { name: "Kiszállítás", value: deliveries.length, target: "deliveries", icon: "deliveries" },
+    { name: "Beérkezett rendelések", value: christmas.length, target: "special", icon: "special" },
+    { name: "Új megkeresések", value: contacts.filter(r => r.status === "new").length, target: "contacts", icon: "contacts" },
   ];
   return <div className="kd-app">
     <style>{`
-      :root{--ink:#213b2e;--green:#1f6849;--wash:#f7f8f7;--border:#e3e9e4}
-      body{margin:0;background:var(--wash);font-family:system-ui,Arial;color:var(--ink)}
-      button,input{font:inherit}button{cursor:pointer}.kd-app{display:flex;min-height:100vh}
-      .kd-nav{background:#fff;border-right:1px solid var(--border);padding:26px 15px;width:275px;flex-shrink:0}
-      .kd-nav h2{margin:0 10px 3px;font-size:21px}.kd-nav small{display:block;margin:0 10px 27px;color:#687b70}
-      .kd-link{background:transparent;color:#3a5545;border:0;border-radius:12px;display:flex;align-items:center;gap:14px;width:100%;padding:15px 14px;text-align:left;font-weight:600}
-      .kd-link b{font-size:24px;width:26px;text-align:center}.kd-link.selected{background:#e9f4ec;color:#155e3a}
-      .kd-main{flex:1;padding:32px;min-width:0;max-width:1650px}.kd-title{font-size:28px;margin:0 0 18px}
-      .kd-top{display:flex;justify-content:space-between;gap:15px;align-items:center;margin-bottom:18px}
-      .kd-card{background:white;border:1px solid var(--border);border-radius:16px;padding:21px;box-shadow:0 8px 20px rgba(0,0,0,.02)}
-      .kd-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:15px}
-      .kd-stat{text-align:left;background:white;color:var(--ink);border:1px solid var(--border);border-radius:15px;padding:20px}
-      .kd-stat strong{font-size:26px;display:block;color:var(--green);margin-top:10px}
-      .kd-actions{display:flex;gap:10px;flex-wrap:wrap;margin:12px 0}
-      .kd-actions input{padding:10px;border:1px solid #d4ded6;border-radius:9px}
-      .kd-btn{border:1px solid #d2e1d6;border-radius:9px;background:#fff;color:#1e613d;padding:10px 15px;font-weight:650}
-      .kd-primary{background:#1c7049;color:#fff;border-color:#1c7049}
-      .kd-table-wrap{overflow-x:auto}.kd-table{width:100%;border-collapse:collapse;text-align:left}
-      .kd-table th,.kd-table td{padding:14px 12px;border-bottom:1px solid #ebefeb;white-space:nowrap}
-      .kd-table th{background:#f8faf8;color:#526b5b;font-size:13px}
-      .kd-drawer-cover{position:fixed;inset:0;background:#1118;display:flex;justify-content:flex-end;z-index:50}
-      .kd-drawer{width:min(620px,100vw);background:#fff;height:100vh;overflow:auto;padding:25px;box-shadow:-8px 0 35px #0002}
-      .kd-day{background:#f8faf8;border:1px solid var(--border);padding:15px;margin:10px 0;border-radius:12px}
-      .kd-details{display:grid;grid-template-columns:140px 1fr;gap:10px;padding:10px 0;border-bottom:1px solid #eee;word-break:break-word}
-      .kd-login{max-width:410px;margin:12vh auto;padding:30px}.kd-login input{padding:12px;width:100%;box-sizing:border-box;border:1px solid var(--border);border-radius:9px;margin:15px 0}
+      :root{--green:#196b49;--deep:#124731;--pale:#e9f4ee;--bg:#f5f7f5;--line:#dfe7e0;--text:#1d3027;--muted:#65746a;--shadow:0 8px 25px rgba(20,56,37,.07)}
+      body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,"Segoe UI",Arial,sans-serif;line-height:1.45}
+      button,input{font:inherit}button{cursor:pointer} .kd-app{display:flex;min-height:100vh}
+      .kd-nav{width:255px;flex-shrink:0;background:#fff;color:var(--text);padding:26px 14px;position:sticky;top:0;height:100vh;overflow-y:auto;border-right:1px solid var(--line)}
+      .kd-nav h2{font-size:21px;font-weight:800;letter-spacing:.1px;margin:0 13px 4px}
+      .kd-nav small{display:block;font-size:12px;color:var(--muted);margin:0 13px 30px}
+      .kd-link{display:flex;align-items:center;gap:8px;width:100%;text-align:left;border:0;border-radius:11px;background:transparent;color:var(--text);padding:13px 14px;margin:4px 0;font-weight:650}
+      .kd-link:hover{background:#f0f6f1}.kd-link.selected{background:#e6f2e9;color:var(--deep)}
+      .kd-navicon{width:25px;flex-shrink:0;display:inline-flex;justify-content:center}
+      .kd-navicon svg{width:20px;height:20px}
+      .kd-sidefoot{margin:30px 13px;color:var(--muted);font-size:12px}
+      .kd-main{flex:1;min-width:0;padding:28px 35px 55px;max-width:1750px}
+      .kd-title{font-size:29px;margin:0 0 5px;letter-spacing:-.6px}
+      .kd-top{display:flex;justify-content:space-between;gap:20px;align-items:flex-start;margin-bottom:24px;flex-wrap:wrap}
+      .kd-header{display:flex;align-items:center;gap:14px}.kd-pill{border-radius:100px;background:#eaf2ec;color:var(--deep);padding:6px 11px;font-weight:700;font-size:12px}
+      .kd-card{background:#fff;border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow);padding:22px;margin-bottom:18px}
+      .kd-grid{display:grid;grid-template-columns:repeat(5,minmax(160px,1fr));gap:14px;margin-bottom:23px}
+      .kd-stat{display:flex;flex-direction:column;justify-content:space-between;gap:13px;text-align:left;min-height:134px;background:#fff;color:var(--text);border:1px solid var(--line);box-shadow:var(--shadow);border-radius:15px;padding:18px 16px}
+      .kd-stat:hover{border-color:#85b39a;transform:translateY(-2px)}.kd-stat>b{font-size:13px;font-weight:800;min-height:36px}
+      .kd-stat-bottom{display:flex;justify-content:space-between;align-items:center}
+      .kd-stat-icon{width:44px;height:44px;display:grid;place-items:center;background:var(--pale);color:var(--green);border-radius:12px}
+      .kd-stat-icon svg{width:24px;height:24px}
+      .kd-stat strong{font-size:31px;color:#111;font-weight:850;letter-spacing:-1px}
+      .kd-overview{padding:24px}.kd-overview h2{font-size:20px;margin:0 0 6px}
+      .kd-overview p{margin:7px 0;color:#5f7065}.kd-overview-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:20px}
+      .kd-overview-box{border:1px solid var(--line);border-radius:12px;overflow:hidden}
+      .kd-overview-box h3{margin:0;background:#eaf4ec;padding:13px 15px;font-size:15px}
+      .kd-overview-box p{padding:12px 15px;margin:0;color:var(--text)}
+      .kd-actions{display:flex;gap:13px;flex-wrap:wrap;align-items:end;margin:14px 0 20px}
+      .kd-actions input{padding:10px 11px;border:1px solid #cbd9ce;border-radius:9px;min-height:41px}
+      .kd-btn{border:1px solid #cbded1;border-radius:10px;background:#fff;color:var(--deep);padding:11px 17px;font-weight:750}
+      .kd-btn:hover{filter:brightness(.96)}.kd-primary{background:var(--green);color:#fff;border-color:var(--green)}
+      .kd-table-wrap{overflow-x:auto}.kd-table{width:100%;border-collapse:collapse;text-align:left;font-size:14px}
+      .kd-table th,.kd-table td{padding:13px 10px;border-bottom:1px solid #ecf0ed;white-space:nowrap}
+      .kd-table th{background:#f0f6f1;color:#3b5b48;font-weight:750}.kd-table tr:hover td{background:#fafcfb}
+      .kd-drawer-cover{position:fixed;inset:0;background:rgba(9,29,19,.57);display:flex;justify-content:center;align-items:flex-start;padding:30px 14px;overflow:auto;z-index:50}
+      .kd-drawer{width:min(910px,100%);background:#fff;border-radius:19px;box-shadow:0 20px 90px #091e1a50;padding:25px;max-height:calc(100vh - 60px);overflow:auto}
+      .kd-day{background:#f8faf8;border:1px solid var(--line);padding:15px;margin:12px 0;border-radius:12px}
+      .kd-details{display:grid;grid-template-columns:160px 1fr;gap:12px;padding:12px 0;border-bottom:1px solid #ecf0ed;word-break:break-word}
+      .kd-login{max-width:410px;margin:12vh auto;padding:30px}.kd-login input{padding:12px;width:100%;box-sizing:border-box;border:1px solid var(--line);border-radius:9px;margin:15px 0}
       .kd-error{color:#a03232;margin:12px 0}
-      @media(max-width:850px){.kd-app{display:block}.kd-nav{width:100%;padding:12px;display:flex;flex-wrap:wrap;gap:5px}.kd-nav h2,.kd-nav small{width:100%}.kd-link{width:auto;font-size:12px;padding:9px}.kd-link b{font-size:17px}.kd-main{padding:16px}}
-    `}</style>
-    {!authed ? <div className="kd-login kd-card"><h1>Kastélydomb admin</h1><p>Védett tesztüzemi adatnézet</p><input aria-label="Adminjelszó" type="password" placeholder="Adminjelszó" value={password} onChange={e => setPassword(e.target.value)} onKeyDown={e => { if (e.key === "Enter") void login(); }} /><button className="kd-btn kd-primary" disabled={loading} onClick={() => void login()}>Belépés</button>{error && <p className="kd-error">{error}</p>}</div> :
-    <><aside className="kd-nav"><h2>Kastélydomb</h2><small>Adminisztráció · integrációs teszt</small>{sections.map(s => <button key={s.id} className={"kd-link "+(section===s.id?"selected":"")} onClick={() => { setSection(s.id); setSelected(null); setFrom(""); setTo(""); setQuery(""); }}><b aria-hidden="true">{s.icon}</b>{s.label}</button>)}<button className="kd-link" onClick={() => void logout()}>Kijelentkezés</button></aside>
-    <main className="kd-main"><div className="kd-top"><h1 className="kd-title">{sections.find(s => s.id===section)?.label}</h1><button className="kd-btn" onClick={() => void refresh()}>Frissítés</button></div>
-      <p>Integrációs ellenőrző nézet – valódi adatbázis, egyelőre csak olvasás. Tesztadatok elkülönítve.</p>
+      @media(max-width:1200px){.kd-grid{grid-template-columns:repeat(3,1fr)}.kd-main{padding:23px}.kd-nav{width:215px}}
+      @media(max-width:800px){.kd-app{display:block}.kd-nav{width:100%;height:auto;position:static;display:flex;flex-wrap:wrap;gap:5px;padding:12px}.kd-nav h2,.kd-nav small,.kd-sidefoot{width:100%}.kd-link{width:auto;font-size:12px;padding:9px}.kd-main{padding:16px}.kd-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.kd-overview-grid{grid-template-columns:1fr}}
+    `}</style>    {!authed ? <div className="kd-login kd-card"><h1>Kastélydomb admin</h1><p>Védett tesztüzemi adatnézet</p><input aria-label="Adminjelszó" type="password" placeholder="Adminjelszó" value={password} onChange={e => setPassword(e.target.value)} onKeyDown={e => { if (e.key === "Enter") void login(); }} /><button className="kd-btn kd-primary" disabled={loading} onClick={() => void login()}>Belépés</button>{error && <p className="kd-error">{error}</p>}</div> :
+    <><aside className="kd-nav"><h2>Kastélydomb</h2><small>Kávézó és Étterem · Admin</small>{sections.map(s => <button key={s.id} className={"kd-link "+(section===s.id?"selected":"")} onClick={() => { setSection(s.id); setSelected(null); setFrom(""); setTo(""); setQuery(""); }}><span className="kd-navicon"><Icon name={s.id}/></span>{s.label}</button>)}<div className="kd-sidefoot">Integrációs teszt · valós adatbázis<br/>A műveletek csak olvasási joggal működnek.</div><button className="kd-link" onClick={() => void logout()}>Kijelentkezés</button></aside>
+    <main className="kd-main"><div className="kd-top"><h1 className="kd-title">{sections.find(s => s.id===section)?.label}</h1><span className="kd-header"><span className="kd-pill">Integrációs teszt</span><button className="kd-btn" onClick={() => void refresh()}>Frissítés</button></span></div>
+      
       {error && <p className="kd-error">{error}</p>}
-      {section === "home" && <div className="kd-grid">{countCards.map(x => <button key={x.name} className="kd-stat" onClick={() => setSection(x.target)}>{x.name}<strong>{x.value}</strong></button>)}</div>}
+      {section === "home" && <><div className="kd-grid">{countCards.map(x => <button key={x.name} className="kd-stat" onClick={() => setSection(x.target)}><b>{x.name}</b><span className="kd-stat-bottom"><span className="kd-stat-icon"><Icon name={x.icon}/></span><strong>{x.value}</strong></span></button>)}</div>
+      <section className="kd-card kd-overview"><h2>Mai áttekintés</h2><p>A kártyák számai az adatbázis aktuálisan elérhető adatai alapján frissülnek.</p><div className="kd-overview-grid"><div className="kd-overview-box"><h3>Mai napi menü</h3><p>{orders.filter(o=>Array.isArray(o.items) && (o.items as Entry[]).some(i=>i.date===today)).length} érintett rendelés</p></div><div className="kd-overview-box"><h3>Mai kiszállítás</h3><p>{deliveries.length} kiszállítási feladat</p></div></div></section></>}
       {section === "settings" && <div className="kd-card"><h2>Jogosultságok</h2><p>A szuperadmin, iroda, pultos és futár személyenkénti beállítása még nem aktív. A közös adminjelszóval védett olvasási felület tesztelhető.</p></div>}
       {!["home","settings"].includes(section) && <div className="kd-card">
         <div className="kd-actions"><input placeholder="Keresés: név, azonosító" value={query} onChange={e => setQuery(e.target.value)}/><label> -tól <input type="date" value={from} onChange={e => setFrom(e.target.value)}/></label><label> -ig <input type="date" value={to} onChange={e => setTo(e.target.value)}/></label>{section==="menu" && <label><input type="checkbox" checked={showArchived} onChange={e => setShowArchived(e.target.checked)}/> Lejárt rendelések is</label>}</div>
