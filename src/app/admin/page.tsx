@@ -148,7 +148,7 @@ export default function AdminPage() {
         body:JSON.stringify({kind,id:selected.id})});
       const result=await response.json();
       if(!response.ok || !result.ok) throw Error(result.error || "Nem sikerült a visszaigazolás.");
-      const updated={...selected,status:"confirmed",confirmed_at:result.confirmed_at};
+      const updated: Entry={...selected,id:selected.id,status:"confirmed",confirmed_at:result.confirmed_at};
       setSelected(updated);
       const updater=(rows:Entry[])=>rows.map(row=>row.id===updated.id?{...row,...updated}:row);
       if(kind==="contacts")setContacts(updater);
