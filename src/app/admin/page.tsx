@@ -259,19 +259,19 @@ export default function AdminPage() {
         <Info label="Név" value={selected.customer_name}/>
         <Info label="E-mail" value={selected.customer_email}/>
         <Info label="Telefon" value={selected.customer_phone}/>
-        {selected.delivery_address&&<Info label="Szállítási cím" value={selected.delivery_address}/>}
+        {Boolean(selected.delivery_address)&&<Info label="Szállítási cím" value={selected.delivery_address}/>}
       </div></div>
       {(section==="reservations"||section==="menu"||section==="special")&&<div className="kd-section">
         <h3>{section==="reservations"?"Asztalfoglalás adatai":"Megrendelés adatai"}</h3><div className="kd-info-grid">
-          {selected.reservation_date&&<Info label="Foglalás napja" value={dateHU(selected.reservation_date)}/>}
-          {selected.reservation_time&&<Info label="Érkezés ideje" value={selected.reservation_time}/>}
-          {selected.guest_count!=null&&<Info label="Létszám" value={String(selected.guest_count)+" fő"}/>}
-          {selected.fulfillment&&<Info label="Átvétel módja" value={fulfillmentHU(selected.fulfillment)}/>}
-          {selected.payment_method&&<Info label="Fizetés módja" value={paymentHU(selected.payment_method)}/>}
-          {selected.total_huf!=null&&<Info label="Teljes összeg" value={price(selected.total_huf)}/>}
+          {Boolean(selected.reservation_date)&&<Info label="Foglalás napja" value={dateHU(selected.reservation_date)}/>}
+          {Boolean(selected.reservation_time)&&<Info label="Érkezés ideje" value={selected.reservation_time}/>}
+          {Boolean(selected.guest_count!=null)&&<Info label="Létszám" value={String(selected.guest_count)+" fő"}/>}
+          {Boolean(selected.fulfillment)&&<Info label="Átvétel módja" value={fulfillmentHU(selected.fulfillment)}/>}
+          {Boolean(selected.payment_method)&&<Info label="Fizetés módja" value={paymentHU(selected.payment_method)}/>}
+          {Boolean(selected.total_huf!=null)&&<Info label="Teljes összeg" value={price(selected.total_huf)}/>}
         </div>{Array.isArray(selected.items)&&<><h3 className="kd-items-title">Rendelt tételek</h3><DateItems items={selected.items}/></>}
       </div>}
-      {(selected.message||selected.guest_notes||selected.notes)&&<div className="kd-section"><h3>{section==="contacts"?"Üzenet":"Megjegyzés"}</h3><p>{asText(selected.message||selected.guest_notes||selected.notes)}</p></div>}
+      {Boolean(selected.message||selected.guest_notes||selected.notes)&&<div className="kd-section"><h3>{section==="contacts"?"Üzenet":"Megjegyzés"}</h3><p>{asText(selected.message||selected.guest_notes||selected.notes)}</p></div>}
       <div className="kd-section"><h3>Visszaigazolás</h3>
         <div className="kd-info-grid">
           <div className="kd-info"><span>Állapot</span><strong className={selected.confirmed_at?"kd-success":"kd-pending"}>{statusHU(selected)}</strong></div>
@@ -280,7 +280,7 @@ export default function AdminPage() {
         {(!selected.confirmed_at && ["contacts","reservations","menu","special"].includes(section)) &&
           <div className="kd-modalactions"><button className="kd-btn kd-primary" disabled={confirming} onClick={()=>void confirmSelected()}>{confirming?"Mentés folyamatban…":"Visszaigazolva"}</button></div>}
       </div>
-      {selected.internal_notes&&<div className="kd-section"><h3>Belső megjegyzés</h3><p>{asText(selected.internal_notes)}</p></div>}
+      {Boolean(selected.internal_notes)&&<div className="kd-section"><h3>Belső megjegyzés</h3><p>{asText(selected.internal_notes)}</p></div>}
       <p className="kd-muted">A visszaigazolás rögzítése önmagában nem küld külön e-mailt.</p>
     </aside></div>}
   </div>;
