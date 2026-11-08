@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic";
 // The shared admin password is temporary; role-specific accounts are a separate release gate.
 const sources = {
   contacts: "kastelydomb_contacts?select=id,request_id,form_number,confirmed_at,customer_name,customer_email,customer_phone,message,status,internal_notes,is_test,created_at,updated_at",
-  reservations: "kastelydomb_reservations?select=id,request_id,customer_name,customer_email,customer_phone,reservation_date,reservation_time,guest_count,guest_notes,status,confirmed_at,confirmed_by,internal_notes,is_test,created_at,updated_at",
+  reservations: "kastelydomb_reservations?select=id,request_id,form_number,customer_name,customer_email,customer_phone,reservation_date,reservation_time,guest_count,guest_notes,status,confirmed_at,confirmed_by,internal_notes,is_test,created_at,updated_at",
   christmas: "kastelydomb_christmas_orders?select=id,order_number,confirmed_at,customer_name,customer_email,customer_phone,fulfillment,delivery_address,payment_method,items,total_huf,status,is_test,created_at",
 } as const;
 
