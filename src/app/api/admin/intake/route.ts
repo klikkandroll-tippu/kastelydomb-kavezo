@@ -34,8 +34,12 @@ export async function GET(req: NextRequest) {
     if (kind && !(kind in sources)) return json({ error: "Ismeretlen adattípus." }, 400);
     const keys = kind ? [kind as keyof typeof sources] : Object.keys(sources) as Array<keyof typeof sources>;
     const out: Record<string, unknown[]> = {};
-    for (const key of keys) out[key] = await getRows(sources[key]);
-    return json({ ...out });
+    const failed: string[] = [];
+    for (const key of keys) {
+      try { out[key] = await getRows(sources[key]); }
+      catch { failed.push(key); }
+    }
+    return json({ ...out, errors: failed, partial: failed.length > 0 }, failed.length === keys.length ? 503 : 200);
   } catch {
     return json({ error: "Az admin nyilvántartás jelenleg nem tölthető be." }, 503);
   }
