@@ -27,3 +27,18 @@
 - Minden érkező rekord `is_test` jelölést kap; tesztadatokat nem törlünk automatikusan.
 - A jelenlegi weboldali webhook-küldést nem kapcsoljuk ki a tartós adatmentés és a hibakezelés tesztje előtt.
 - Korábbi admin `ADMIN_PASSWORD` secretet a tesztágról nem másolunk ki, és jelszót nem írunk a forrásba.
+
+## Végrehajtás és QA – 2026-11-08
+- PASS: RLS-védett kapcsolati és foglalási tábla létrejött, beillesztési próba tranzakciós ROLLBACK-kel sikeres; a teszt után mindkét tábla üres.
+- PASS: a korábbi admin session/API kódja az integrációs ágra átkerült; új védett `/api/admin/intake` lekérdezés és `/admin` kezdeti, olvasási adminnézet elkészült.
+- PASS: mindhárom weboldali API-forrásba (napi menü, karácsonyi rendelés, kapcsolat/foglalás) bekerült a normalizált, szerveroldali Supabase-mentés **opt-in** illesztése, `ADMIN_DB_SYNC_ENABLED` flag mögött.
+- PASS: az integrációs Vercel Preview build READY; a GitHub ág nem lett production ágra egyesítve.
+- PASS: Preview tesztmód, teszt e-mail-irányítás és lezárt éles kapcsolat beállítva az új ágon. `ADMIN_DB_SYNC_ENABLED=false`.
+- NOT VERIFIED: böngészős admin-belépés és API-val történő valódi adatlista; tesztrendelés weboldal → Supabase → admin.
+- BLOCKED: a korábbi ügyfélteszt Preview-ághoz kötött e-mail webhookok értékeit a Vercel csatlakozó nem engedi dekódolni. Az eredeti secretnek egy második Preview-ághoz való hozzákapcsolása Vercel felületi jóváhagyást/beállítást igényel. A secretet nem másoltuk vaktában, és az eredeti tesztágat nem módosítottuk.
+- RELEASE BLOCKER: sikertelen webhook után az adatbázisban már eltárolt kérés újrapróbálása duplikált rendelést eredményezhet. Stabil kliens oldali idempotencia-azonosító, adatbázisbeli egyediség, e-mail/outbox állapotkezelés és E2E szükséges **mielőtt a flag true lehet**.
+- RELEASE BLOCKER: szuperadmin / iroda / pultos / futár külön fiók és soronkénti jogosultság nem készült el; a közös adminjelszó csak a tesztelhető olvasási nézethez használható.
+- RELEASE BLOCKER: a prototípusban elfogadott kiszállítás- és pénzügyi lezárási UX, Google Táblázatok mentés még nincs éles API-val összekötve.
+- RELEASE BLOCKER: a napi menü forrás végpontja jelenleg 2026. november 13-ig tartalmaz statikus ételsorokat. A későbbi hetekhez publikált adatbázis-menü és weboldali megjelenítés közös forrása szükséges.
+
+Ne kapcsoljuk be az adatmentési flaget és ne vigyük productionra a PR-t a felsorolt ellenőrzések előtt.
