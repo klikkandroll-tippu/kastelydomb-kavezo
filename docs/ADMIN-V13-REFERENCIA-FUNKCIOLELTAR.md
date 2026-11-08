@@ -15,13 +15,13 @@
 | Napi menü | Aktuális rendelések, dátumszűrők, korábbi/archivált rendelések | Supabase olvasás aktív |
 | Napi menü | Mai nap és napi tétellista | Supabase JSON tételekből |
 | Napi menü | Konyhai összesítő napokra és időszakra, leves | Supabase adatokból; egyedi árazási QA még szükséges |
-| Napi menü | Futárlista | Supabase rendelésből épül; státuszmentés még nem aktív |
+| Napi menü | Futárlista | Supabase rendelésből épül; napi státuszmentés aktív külön ledgerrel |
 | Napi menü | Rendelés részletei, QR, megerősítés és megjegyzés | QR-részletezés, megerősítés és megjegyzésmentés fejlesztési ágon; böngészős E2E hiányzik |
 | Rendelések | Párhuzamos ajánlatok; ajánlaton belül rendelés / konyha / kiszállítás | Karácsony ajánlata bekötve, további ajánlatok külön modellje hiányzik |
 | Rendelések | Termékek, teljes összeg, fizetés | Felület visszaállítva, pénzügyi lezárás még letiltva |
 | Kiszállítás | Aznapi futárfeladatok, cím és Google Maps | Nézet működő adatból, státusz és elszámolás fejlesztendő |
-| Kiszállítás | Teljesítés, pénzbeszedés és pultos zárás | **BLOCKED** külön szerepkör és pénzügyi konzisztencia nélkül |
-| Kiszállítás | Napi futárelszámolás, készpénz / bankkártya | Grafikai nézet megvan, pontos napi összegek egyeztetése hiányzik |
+| Kiszállítás | Teljesítés, pénzbeszedés és pultos zárás | Tesztágon idempotens, napi státuszlépések és pontos összegellenőrzés; **élesítéshez szerepkörvédelem még hiányzik** |
+| Kiszállítás | Napi futárelszámolás, készpénz / bankkártya | Kód szinten napi ár- és státusz-adatokból számol; régi tesztrendelésnél pénzbeszedés letiltva, éles pénzügyi egyeztetés szükséges |
 | Asztalfoglalások | Lista, időpont, létszám, részletek, visszaigazolás | Supabase adatokból, AF kóddal; státusz mentési végpont aktív |
 | Kapcsolatfelvétel | Lista, részletek, feldolgozás | Supabase adatokból, KF kóddal; megerősítés mentése aktív |
 | Ügyfelek | Rendelők, foglalók, érdeklődők | Supabase adatokból összesítve |
@@ -42,3 +42,11 @@
 
 ## Megjegyzés
 A `READY` Vercel-deploy a build sikerét jelenti, önmagában nem teljes működésigazolás.
+
+## További változások és ellenőrzések
+- A napi menü API új rendelései már napra és tételre pontos `line_total_huf` mezőt tárolnak. A régi sorok változatlanok, áruk csak tájékoztatóan osztható fel, ezért a futár pénzbeszedési művelete azokon blokkolt.
+- A `kastelydomb_delivery_progress` tábla és `kd_delivery_step` RPC megőrzi a napi teljesítés / pénzbeszedés / pultos elszámolás dátumát és a készpénz/kártya összeget.
+- A dátumonkénti pénzbeszedés adatbázis-szinten csak a pontos napi összeggel és megfelelő fizetési móddal lehetséges; előre fizetett rendelések nem szedhetők be újra.
+- SQL teszt szintetikus rendelésen: delivered → collected → settled, 2 800 Ft; **PASS**, ROLLBACK után semmi tesztadat nem maradt.
+- Vercel READY és GitHub Actions Next-build PASS; teljes böngészős E2E még nem igazolt.
+- A különböző felhasználókhoz tartozó **szerveroldali** jogosultság és a Google Sheets közvetlen API-mentés továbbra is kiadási blokkoló.
