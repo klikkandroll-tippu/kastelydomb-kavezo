@@ -50,7 +50,7 @@ function DateItems({ items }: { items: unknown }) {
     const key = asText(item.date ?? item.fulfillmentDate ?? "Összes tétel");
     byDay.set(key, [...(byDay.get(key) || []), item]);
   }
-  return <div>{Array.from(byDay).map(([day, rows]) => <div key={day} className="kd-day"><b>{day}</b>{rows.map((item, i) => <div key={i}>{asText(item.quantity)} × {asText(item.menu ?? item.name)} – {asText(item.dish ?? item.name)}</div>)}</div>)}</div>;
+  return <div>{Array.from(byDay).map(([day, rows]) => <div key={day} className="kd-day"><b>{/^\d{4}-\d{2}-\d{2}$/.test(day)?dateHU(day):day}</b>{rows.map((item, i) => <div key={i}>{asText(item.quantity)} × {item.menu==="soup"?"Leves":item.menu?asText(item.menu)+" menü":asText(item.name)} – {asText(item.dish ?? item.name)}</div>)}</div>)}</div>;
 }
 export default function AdminPage() {
   const [authed, setAuthed] = useState(false);
@@ -250,7 +250,7 @@ export default function AdminPage() {
       {!["home","settings"].includes(section) && <div className="kd-card">
         <div className="kd-actions"><input placeholder="Keresés: név, azonosító" value={query} onChange={e => setQuery(e.target.value)}/><label> -tól <input type="date" value={from} onChange={e => setFrom(e.target.value)}/></label><label> -ig <input type="date" value={to} onChange={e => setTo(e.target.value)}/></label>{section==="menu" && <label><input type="checkbox" checked={showArchived} onChange={e => setShowArchived(e.target.checked)}/> Lejárt rendelések is</label>}</div>
         <p><strong>{filtered.length} találat</strong>{loading?" · Betöltés...":""}</p>
-        <div className="kd-table-wrap"><table className="kd-table"><thead><tr><th>Azonosító</th><th>Ügyfél</th><th>Dátum</th><th>Állapot</th><th>Összeg</th><th>Művelet</th></tr></thead><tbody>{filtered.map((r,i) => <tr key={String(r.id || r.customer_email || i)}><td>{asText(r.form_number || r.order_number || r.request_id)}</td><td>{asText(r.customer_name)}</td><td>{dateHU(r.reservation_date || r.created_at)}</td><td><span className={"kd-status "+(r.confirmed_at?"kd-success":"kd-pending")}>{statusHU(r)}</span></td><td>{price(r.total_huf)}</td><td><button className="kd-btn" onClick={() => setSelected(r)}>Megnézem</button></td></tr>)}</tbody></table></div>
+        <div className="kd-table-wrap"><table className="kd-table"><thead><tr><th>Azonosító</th><th>Ügyfél</th><th>Dátum</th><th>Állapot</th><th>Összeg</th><th>Művelet</th></tr></thead><tbody>{filtered.map((r,i) => <tr key={String(r.id || r.customer_email || i)}><td>{asText(r.form_number || r.order_number || r.request_id)}</td><td>{asText(r.customer_name)}</td><td>{dateHU(r.reservation_date || r.created_at)}</td><td><span className={"kd-status "+(statusHU(r)==="Visszaigazolásra vár"?"kd-pending":"kd-success")}>{section==="customers"?"Ügyfél":statusHU(r)}</span></td><td>{price(r.total_huf)}</td><td><button className="kd-btn" onClick={() => setSelected(r)}>Megnézem</button></td></tr>)}</tbody></table></div>
       </div>}
     </main></>}
     {selected !== null ? <div className="kd-drawer-cover" onClick={() => setSelected(null)}>
@@ -283,7 +283,7 @@ export default function AdminPage() {
           <div className="kd-info"><span>Állapot</span><strong className={selected.confirmed_at?"kd-success":"kd-pending"}>{statusHU(selected)}</strong></div>
           <Info label="Visszaigazolás dátuma" value={timeHU(selected.confirmed_at)}/>
         </div>
-        {selected.confirmed_at ? null :
+        {selected.confirmed_at || !["contacts","reservations","menu","special"].includes(section) ? null :
           <div className="kd-modalactions"><button type="button" className="kd-btn kd-primary" disabled={confirming} onClick={() => void confirmSelected()}>{confirming?"Mentés folyamatban…":"Visszaigazolva"}</button></div>}
         </section>
         <p className="kd-muted">A visszaigazolás rögzítése önmagában nem küld külön e-mailt.</p>
