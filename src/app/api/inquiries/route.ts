@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { emailRecipients } from "@/lib/email-routing";
-import { persistAdminRow } from "@/lib/admin-persistence";
+import { persistAdminRow, sendZapierOnce } from "@/lib/admin-persistence";
 
 export const runtime = "nodejs";
 const esc = (v: unknown) => String(v ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]!));
@@ -86,7 +86,7 @@ export async function POST(req: NextRequest) {
   }
   const isTest = isTestMode();
   const recipients = emailRecipients(email, isTest);
-  const requestId = crypto.randomUUID();
+  const requestId = typeof raw.request_id==="string" && /^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/i.test(raw.request_id)?raw.request_id:crypto.randomUUID();
   rows.unshift(["Igényazonosító",requestId]);
   if(!isTest && process.env.INQUIRY_LIVE_EMAILS_ENABLED !== "true")return NextResponse.json({error:"Az éles értesítések még nincsenek engedélyezve."},{status:503});
   const payload={ request_id:requestId, event: type==="contact"?"contact.created":"reservation.requested",is_test:isTest,...recipients,customer_name:name,guest_email_original:recipients.original_guest_email_suppressed?undefined:email,subject_restaurant:subject,subject_guest:subject.replace("új ","")+" – beérkezett",restaurant_html:html(heading,restaurantIntro,rows,"A vendégnek szóló igényt az étterem munkatársa kezelje."),guest_html:html(heading,guestIntro,rows,guestFooter)};
@@ -108,10 +108,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({error:"Az igény adatbázisba mentése nem sikerült. Kérjük, próbálja újra."},{status:503});
   }
   try {
-    const response=await fetch(hook,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload),signal:AbortSignal.timeout(8000)});
-    if(!response.ok)throw Error("Webhook HTTP "+response.status);
+    await sendZapierOnce(type,requestId,hook,payload,8000);
   }catch{
-    return NextResponse.json({error:"Az üzenetet nem sikerült továbbítani. Kérjük, próbálja újra vagy hívja az éttermet."},{status:502});
+    return NextResponse.json({error:"Az értesítés állapota ellenőrzést igényel. Kérjük, hívja az éttermet."},{status:502});
   }
   return NextResponse.json({ok:true,is_test:isTest,request_id:requestId});
 }
