@@ -1,6 +1,6 @@
 import {NextRequest,NextResponse} from "next/server";
 import {emailRecipients} from "@/lib/email-routing";
-import {persistAdminRow} from "@/lib/admin-persistence";
+import {persistAdminRow,sendZapierOnce} from "@/lib/admin-persistence";
 import {randomUUID} from "node:crypto";
 export const runtime="nodejs";
 export const dynamic="force-dynamic";
@@ -64,7 +64,7 @@ export async function POST(req:NextRequest){
   }
   if(d.plan==="yes"&&orderedDays<2)return bad("Előfizetéssel legalább két külön napra kell rendelni.");
   if(total>500000)return bad("Túl nagy rendelés.");
-  const id=randomUUID(),orderNumber="MENU-"+now.date.slice(2).replace(/-/g,"")+"-"+id.slice(0,8).toUpperCase();
+  const id=typeof d.request_id==="string" && /^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/i.test(d.request_id)?d.request_id:randomUUID(),orderNumber="MENU-"+now.date.slice(2).replace(/-/g,"")+"-"+id.slice(0,8).toUpperCase();
   const fulfillmentHu=d.fulfillment==="delivery"?"Kiszállítás":d.fulfillment==="takeaway"?"Elvitel":"Helyben fogyasztás";
   const paymentHu=d.payment==="transfer"?"Céges banki átutalás":d.payment==="cod-card"?"Bankkártya az átvételkor":"Készpénz az átvételkor";
   const recipients=emailRecipients(email,true);
@@ -96,7 +96,7 @@ export async function POST(req:NextRequest){
       items, notes: clean(d.note, 2000) || null, is_test: true,
     });
   } catch { return bad("A rendelés adatbázisba mentése nem sikerült.",503); }
-  try{const sent=await fetch(hook,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload),signal:AbortSignal.timeout(12000)});if(!sent.ok)return bad("A rendelés továbbítása nem sikerült. Kérjük, próbálja újra.",502)}
-  catch{return bad("A rendelés továbbítása nem sikerült. Kérjük, próbálja újra.",502)}
+  try{await sendZapierOnce("menu",id,hook,payload)}
+  catch{return bad("A rendelési értesítés állapota ellenőrzést igényel. Kérjük, hívja az éttermet a rendelésazonosító megadásával: "+orderNumber,502)}
   return NextResponse.json({ok:true,order_number:orderNumber,total_huf:total},{headers:{"Cache-Control":"no-store"}});
 }
