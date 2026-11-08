@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { emailRecipients } from "@/lib/email-routing";
+import { persistAdminRow } from "@/lib/admin-persistence";
 
 export const runtime = "nodejs";
 const esc = (v: unknown) => String(v ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]!));
@@ -89,6 +90,23 @@ export async function POST(req: NextRequest) {
   rows.unshift(["Igényazonosító",requestId]);
   if(!isTest && process.env.INQUIRY_LIVE_EMAILS_ENABLED !== "true")return NextResponse.json({error:"Az éles értesítések még nincsenek engedélyezve."},{status:503});
   const payload={ request_id:requestId, event: type==="contact"?"contact.created":"reservation.requested",is_test:isTest,...recipients,customer_name:name,guest_email_original:recipients.original_guest_email_suppressed?undefined:email,subject_restaurant:subject,subject_guest:subject.replace("új ","")+" – beérkezett",restaurant_html:html(heading,restaurantIntro,rows,"A vendégnek szóló igényt az étterem munkatársa kezelje."),guest_html:html(heading,guestIntro,rows,guestFooter)};
+  try {
+    if (type === "contact") {
+      await persistAdminRow("kastelydomb_contacts", {
+        request_id: requestId, customer_name: name, customer_email: email,
+        customer_phone: phone, message: get("message", 2500), status: "new", is_test: isTest,
+      });
+    } else {
+      await persistAdminRow("kastelydomb_reservations", {
+        request_id: requestId, customer_name: name, customer_email: email,
+        customer_phone: phone, reservation_date: get("date", 10),
+        reservation_time: get("time", 5), guest_count: Number(get("guests", 3)),
+        guest_notes: get("note", 1200), status: "pending", is_test: isTest,
+      });
+    }
+  } catch {
+    return NextResponse.json({error:"Az igény adatbázisba mentése nem sikerült. Kérjük, próbálja újra."},{status:503});
+  }
   try {
     const response=await fetch(hook,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload),signal:AbortSignal.timeout(8000)});
     if(!response.ok)throw Error("Webhook HTTP "+response.status);
