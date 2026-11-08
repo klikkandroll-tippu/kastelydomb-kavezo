@@ -1,5 +1,6 @@
 import {NextRequest,NextResponse} from "next/server";
 import {emailRecipients} from "@/lib/email-routing";
+import {persistAdminRow} from "@/lib/admin-persistence";
 import {randomUUID} from "node:crypto";
 export const runtime="nodejs";
 export const dynamic="force-dynamic";
@@ -80,6 +81,21 @@ export async function POST(req:NextRequest){
   const base="<div style='background:#f5f1e9;padding:24px 10px;font-family:Arial,sans-serif;color:#403328'><div style='max-width:620px;margin:auto;background:#fff'><div style='background:#403328;color:white;padding:28px;text-align:center;font-size:22px;font-weight:bold'>Kastélydomb Kávézó és Étterem</div><div style='padding:24px'><h2>Rendelési igényét megkaptuk</h2><p>Kedves "+esc(name)+"! Köszönjük a megrendelését. Az étterem külön visszaigazolja az elfogadását.</p><p><strong>Rendelésazonosító:</strong> "+esc(orderNumber)+"</p><p><strong>Átvétel:</strong> "+esc(fulfillmentHu)+(address?"<br><strong>Cím:</strong> "+esc(address):"")+"<br><strong>Fizetés:</strong> "+esc(paymentHu)+"</p><div style='width:100%;font-size:14px'>"+rows+"</div><p style='font-size:21px;text-align:right'><strong>Összesen: "+ft(total)+"</strong></p><div style='background:#faf7f0;text-align:center;padding:16px'><strong>Rendelés QR-kódja</strong><img src='"+esc(qrUrl)+"' alt='Rendelés QR-kódja' width='480' style='width:100%;max-width:480px;height:auto;display:block;margin:12px auto'><p>"+esc(orderNumber)+"</p></div><p>Ha módosítani vagy lemondani szeretné megrendelését, kérjük, hívjon minket a <a href='tel:+3688470350' style='color:#493329;font-weight:bold'>06 88 470 350</a> telefonszámon.</p><p style='font-size:12px'>Ez az üzenet a rendelési igény beérkezését igazolja, nem annak végleges elfogadását.</p></div></div></div>";
   const restaurantHtml=base.replace("Rendelési igényét megkaptuk","Új napi menürendelés").replace("<p>Kedves "+esc(name)+"! Köszönjük a megrendelését. Az étterem külön visszaigazolja az elfogadását.</p>","<p><strong>Megrendelő:</strong> "+esc(name)+"<br><strong>Telefon:</strong> "+esc(phone)+"<br><strong>E-mail:</strong> "+esc(email)+(isCompany?"<br><strong>Cég:</strong> "+esc(companyName)+"<br><strong>Székhely:</strong> "+esc(companyAddress)+"<br><strong>Adószám:</strong> "+esc(tax):"")+"</p>");
   const payload={event:"menu.order.created",is_test:true,...recipients,order_id:id,order_number:orderNumber,customer_name:name,customer_phone:phone,customer_email:recipients.guest_email,customer_type:isCompany?"company":"private",company_name:isCompany?companyName:"",company_address:isCompany?companyAddress:"",tax_number:isCompany?tax:"",fulfillment:d.fulfillment,fulfillment_hu:fulfillmentHu,delivery_address:address,payment_method:d.payment,payment_method_hu:paymentHu,items,total_huf:total,total_hu:ft(total),qr_value:qrValue,qr_url:qrUrl,guest_html:base,restaurant_html:restaurantHtml,order_html:base,subject_guest:"Kastélydomb – menürendelése beérkezett – "+orderNumber,subject_restaurant:"Kastélydomb – új menürendelés – "+orderNumber};
+  try {
+    await persistAdminRow("kastelydomb_orders", {
+      id, order_number: orderNumber, request_fingerprint: id,
+      customer_name: name, customer_email: email, customer_phone: phone,
+      customer_type: isCompany ? "company" : "private",
+      company_name: isCompany ? companyName : null,
+      company_address: isCompany ? companyAddress : null,
+      tax_number: isCompany ? tax : null,
+      fulfillment: d.fulfillment === "takeaway" ? "pickup" : d.fulfillment === "pickup" ? "dine_in" : "delivery",
+      delivery_address: address || null,
+      payment_method: d.payment === "transfer" ? "company_transfer" : d.payment === "cod-card" ? "card_on_pickup" : "cash_on_pickup",
+      payment_status: "unpaid", status: "new", total_huf: total,
+      items, notes: clean(d.note, 2000) || null, is_test: true,
+    });
+  } catch { return bad("A rendelés adatbázisba mentése nem sikerült.",503); }
   try{const sent=await fetch(hook,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload),signal:AbortSignal.timeout(12000)});if(!sent.ok)return bad("A rendelés továbbítása nem sikerült. Kérjük, próbálja újra.",502)}
   catch{return bad("A rendelés továbbítása nem sikerült. Kérjük, próbálja újra.",502)}
   return NextResponse.json({ok:true,order_number:orderNumber,total_huf:total},{headers:{"Cache-Control":"no-store"}});
