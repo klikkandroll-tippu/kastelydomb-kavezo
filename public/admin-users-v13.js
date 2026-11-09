@@ -27,31 +27,25 @@ async function kdAccountInit(){
   // Display the actual session role and keep the UI's role selector read-only.
   const originalRoleChange=select?.getAttribute('onchange');
   if(select&&originalRoleChange)select.removeAttribute('onchange');
-  const label=document.createElement('div');
-  label.className='muted';
-  label.style.cssText='font-size:12px;margin-top:5px;text-align:right';
-  label.textContent='Bejelentkezve: '+result.account.full_name+' · '+(realRole==='admin'?'Szuperadmin':kdRoleLabels[realRole]);
-  // Keep the legacy select in DOM (render() uses #role), but remove its
-  // visual dropdown and put a real logout action in the same top-right slot.
+  // Keep #role for the approved V1.3 rendering logic, while removing its
+  // meaningless visible selector. The logout control lives in the same header.
   const roleField=select?.parentElement;
-  if(roleField){
-    roleField.querySelectorAll('#kd-top-logout').forEach(node=>node.remove());
-    roleField.childNodes.forEach(node=>{
-      if(node.nodeType===3 && node.textContent?.includes('Szerepkör'))node.textContent='';
-    });
-    select.style.display='none';
-    roleField.style.cssText='display:flex;align-items:center;gap:12px;flex-wrap:wrap;justify-content:flex-end';
-    label.style.cssText='font-size:13px;font-weight:600;color:#3e5d4a;margin:0;white-space:nowrap';
-    label.textContent=result.account.full_name+' · '+(realRole==='admin'?'Szuperadmin':kdRoleLabels[realRole]);
-    roleField.appendChild(label);
+  const header=roleField?.parentElement;
+  if(roleField&&header){
+    roleField.style.display='none';
+    header.querySelectorAll('#kd-top-logout,#kd-top-account').forEach(node=>node.remove());
+    const accountLabel=document.createElement('span');
+    accountLabel.id='kd-top-account';
+    accountLabel.style.cssText='font-size:13px;font-weight:600;color:#3e5d4a;white-space:nowrap';
+    accountLabel.textContent=result.account.full_name+' · '+(realRole==='admin'?'Szuperadmin':kdRoleLabels[realRole]);
     const logout=document.createElement('button');
-    logout.type='button';
     logout.id='kd-top-logout';
+    logout.type='button';
     logout.className='btn';
     logout.textContent='Kijelentkezés';
     logout.style.cssText='font-weight:750;white-space:nowrap;padding:11px 16px;border-color:#c0d7c6';
     logout.addEventListener('click',kdLogout);
-    roleField.appendChild(logout);
+    header.append(accountLabel,logout);
   }
   render();
  }catch{kdNotice('Nem sikerült azonosítani a bejelentkezett felhasználót. Kérjük, frissítse az oldalt.');}
