@@ -31,8 +31,28 @@ async function kdAccountInit(){
   label.className='muted';
   label.style.cssText='font-size:12px;margin-top:5px;text-align:right';
   label.textContent='Bejelentkezve: '+result.account.full_name+' · '+(realRole==='admin'?'Szuperadmin':kdRoleLabels[realRole]);
-  select?.parentElement?.appendChild(label);
-  kdShowSessionControls(result.account);
+  // Keep the legacy select in DOM (render() uses #role), but remove its
+  // visual dropdown and put a real logout action in the same top-right slot.
+  const roleField=select?.parentElement;
+  if(roleField){
+    roleField.querySelectorAll('#kd-top-logout').forEach(node=>node.remove());
+    roleField.childNodes.forEach(node=>{
+      if(node.nodeType===3 && node.textContent?.includes('Szerepkör'))node.textContent='';
+    });
+    select.style.display='none';
+    roleField.style.cssText='display:flex;align-items:center;gap:12px;flex-wrap:wrap;justify-content:flex-end';
+    label.style.cssText='font-size:13px;font-weight:600;color:#3e5d4a;margin:0;white-space:nowrap';
+    label.textContent=result.account.full_name+' · '+(realRole==='admin'?'Szuperadmin':kdRoleLabels[realRole]);
+    roleField.appendChild(label);
+    const logout=document.createElement('button');
+    logout.type='button';
+    logout.id='kd-top-logout';
+    logout.className='btn';
+    logout.textContent='Kijelentkezés';
+    logout.style.cssText='font-weight:750;white-space:nowrap;padding:11px 16px;border-color:#c0d7c6';
+    logout.addEventListener('click',kdLogout);
+    roleField.appendChild(logout);
+  }
   render();
  }catch{kdNotice('Nem sikerült azonosítani a bejelentkezett felhasználót. Kérjük, frissítse az oldalt.');}
 }
@@ -71,7 +91,7 @@ function kdShowSessionControls(account){
 let kdLoggingOut=false;
 async function kdLogout(){
  if(kdLoggingOut)return;
- const button=document.getElementById('kd-logout');
+ const button=document.getElementById('kd-top-logout');
  kdLoggingOut=true;
  if(button){button.disabled=true;button.textContent='Kijelentkezés…';}
  try{
