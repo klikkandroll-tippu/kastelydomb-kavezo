@@ -1,6 +1,6 @@
 import {randomBytes,scryptSync,timingSafeEqual} from "node:crypto";
 export type NamedRole="office"|"desk"|"courier";
-export type SessionAccount={id:string|null;role:"superadmin"|NamedRole;username:string;full_name:string};
+export type SessionAccount={id:string|null;role:"superadmin"|NamedRole;username:string;full_name:string;pages?:string[]};
 export const PAGES={
  superadmin:["home","menu","offers","delivery","reservations","messages","clients","settings"],
  office:["home","menu","offers","delivery","reservations","messages","clients"],
