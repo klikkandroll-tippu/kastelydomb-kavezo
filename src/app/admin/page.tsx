@@ -16,7 +16,7 @@ export default function AdminPage(){
    finally{setBusy(false)}
  }
  if(authenticated===null)return <p style={{padding:30}}>Adminfelület betöltése…</p>;
- if(authenticated)return <iframe title="Kastélydomb admin V1.3 – integrációs teszt" src="/api/admin/shell" style={{position:"fixed",inset:0,width:"100%",height:"100%",border:0,background:"#f5f7f5"}} />;
+ if(authenticated)return <iframe title="Kastélydomb admin V1.3 – integrációs teszt" allow="camera" src="/api/admin/shell" style={{position:"fixed",inset:0,width:"100%",height:"100%",border:0,background:"#f5f7f5"}} />;
  return <main style={{minHeight:"100vh",display:"grid",placeItems:"center",background:"#f5f7f5",fontFamily:"system-ui,Arial"}}>
   <section style={{padding:32,border:"1px solid #dce8df",background:"white",borderRadius:16,width:"min(420px,90vw)"}}>
   <h1 style={{marginTop:0,color:"#124731"}}>Kastélydomb admin</h1>
