@@ -50,3 +50,14 @@ A `READY` Vercel-deploy a build sikerét jelenti, önmagában nem teljes működ
 - SQL teszt szintetikus rendelésen: delivered → collected → settled, 2 800 Ft; **PASS**, ROLLBACK után semmi tesztadat nem maradt.
 - Vercel READY és GitHub Actions Next-build PASS; teljes böngészős E2E még nem igazolt.
 - A különböző felhasználókhoz tartozó **szerveroldali** jogosultság és a Google Sheets közvetlen API-mentés továbbra is kiadási blokkoló.
+
+## Kiszállítási nézet V1.3 – kiegészítés 2026-11-09
+- A `public/admin-courier-v13.js` bővítmény az eredeti elfogadott HTML-en belül, külön forrásban működik. A jóváhagyott `src/admin/reference-v1.3-approved.html` változatlan.
+- Felül név vagy QR-tartalom szerinti kereső, kamerás QR-olvasási lehetőséggel. Ha a böngésző `BarcodeDetector` funkciója nem érhető el, a QR tartalma kézzel beilleszthető. Az admin iframe kameraengedélye hozzáadva.
+- A hosszú azonosító nem jelenik meg külön futárlista-oszlopként; az email QR-azonosítójával azonosítjuk a rendelést.
+- A napi menü `soup` tételét a főkaján felül névvel és mennyiséggel is megjelenítjük, kétszeres árbeszámítás nélkül.
+- A „Megnézem” modál: név, telefon, e-mail, cím, dátum, Google Térkép, részletes napi és teljes rendelés, megjegyzések, fizetési mód, kiszállítás és beszedés állapota, gombok, QR-kód.
+- Az újonnan beszedett menürendelési napi összegek külön `kastelydomb_delivery_progress` állapotba és ugyanabban a tranzakcióban a `kastelydomb_payments` táblába is bekerülnek. `request_id` egyedi, azonos nap kétszer nem könyvelhető.
+- A 2026.11.09-i `MENU-261109-65F6D233` tesztrendelésben a korábbi becsült napi bontást a menük pontos, ellenőrzött áraival egészítettük ki. Napösszegek: 1900,1900,2300,1900,1900 Ft = 9900 Ft. A teljes rendelésösszeg változatlan.
+- SQL tranzakciós ellenőrzés az érintett rendelésnél: delivered -> collected (1900 Ft készpénz) -> settled, kapcsolódó payment pontosan egy darab: PASS. ROLLBACK után pénzügyi vagy futárstátusz-változás nem maradt.
+- Automatikus böngészős kamerateszt és teljes E2E: továbbra is **NOT VERIFIED**. Egy közös adminjelszó mögött a szerepkörválasztás bemutató; éles szerepkörjogosultság szükséges.
