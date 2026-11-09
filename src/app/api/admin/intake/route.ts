@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import { guard, db, json } from "@/lib/admin-server";
+import { guard, db, json, sessionAccount } from "@/lib/admin-server";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -31,20 +31,25 @@ export async function GET(req: NextRequest) {
   try {
     const denied = await guard(req);
     if (denied) return denied;
+    const account=await sessionAccount(req);
+    const courier=account?.role==="courier";
     const kind = req.nextUrl.searchParams.get("kind");
+    if(courier&&kind&&kind!=="christmas")return json({error:"Ehhez az adattípushoz nincs futárjogosultság."},403);
     if (kind && !(kind in sources)) return json({ error: "Ismeretlen adattípus." }, 400);
-    const keys = kind ? [kind as keyof typeof sources] : Object.keys(sources) as Array<keyof typeof sources>;
+    const keys: Array<keyof typeof sources> = courier ? ["christmas"] : kind ? [kind as keyof typeof sources] : Object.keys(sources) as Array<keyof typeof sources>;
     const out: Record<string, unknown[]> = {};
     const failed: string[] = [];
     for (const key of keys) {
-      try { out[key] = await getRows(sources[key]); }
+      try { const rows=await getRows(sources[key]);out[key]=courier&&key==="christmas"?rows.filter((r:unknown)=>Boolean(r)&&typeof r==="object"&&(r as {fulfillment?:string}).fulfillment==="delivery"):rows; }
       catch { failed.push(key); }
     }
     // Payment receipts are read separately from order records to avoid conflating
     // payment status with manual confirmation. Omit on filtered, non-Christmas calls.
     if (!kind || kind === "christmas") {
       try {
-        out.specialPayments = await getRows("kastelydomb_special_payments?select=order_id,amount_huf,method,paid_at,is_test");
+        const receipts=await getRows("kastelydomb_special_payments?select=order_id,amount_huf,method,paid_at,is_test");
+        const orderIds=new Set((out.christmas||[]).map((o:unknown)=>String((o as {id?:string}).id)));
+        out.specialPayments=courier?receipts.filter((r:unknown)=>orderIds.has(String((r as {order_id?:string}).order_id))):receipts;
       } catch { failed.push("specialPayments"); }
     }
     return json({ ...out, errors: failed, partial: failed.length > 0 }, failed.length >= keys.length + ((!kind || kind === "christmas") ? 1 : 0) ? 503 : 200);
