@@ -39,7 +39,14 @@ export async function GET(req: NextRequest) {
       try { out[key] = await getRows(sources[key]); }
       catch { failed.push(key); }
     }
-    return json({ ...out, errors: failed, partial: failed.length > 0 }, failed.length === keys.length ? 503 : 200);
+    // Payment receipts are read separately from order records to avoid conflating
+    // payment status with manual confirmation. Omit on filtered, non-Christmas calls.
+    if (!kind || kind === "christmas") {
+      try {
+        out.specialPayments = await getRows("kastelydomb_special_payments?select=order_id,amount_huf,method,paid_at,is_test");
+      } catch { failed.push("specialPayments"); }
+    }
+    return json({ ...out, errors: failed, partial: failed.length > 0 }, failed.length >= keys.length + ((!kind || kind === "christmas") ? 1 : 0) ? 503 : 200);
   } catch {
     return json({ error: "Az admin nyilvántartás jelenleg nem tölthető be." }, 503);
   }
