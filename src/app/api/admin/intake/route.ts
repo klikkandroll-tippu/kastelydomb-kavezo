@@ -16,7 +16,8 @@ async function getRows(path: string) {
   const results: unknown[] = [];
   for (let offset = 0; offset < 10000; offset += 500) {
     const separator = path.includes("?") ? "&" : "?";
-    const response = await db(path + separator + "order=created_at.desc&limit=500&offset=" + offset);
+    const sort = path.startsWith("kastelydomb_special_payments") ? "paid_at" : "created_at";
+    const response = await db(path + separator + "order=" + sort + ".desc&limit=500&offset=" + offset);
     if (!response.ok) throw Error("Database query failed");
     const batch: unknown = await response.json();
     if (!Array.isArray(batch)) throw Error("Invalid database response");
