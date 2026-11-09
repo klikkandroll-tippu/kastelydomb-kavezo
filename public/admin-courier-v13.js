@@ -95,9 +95,27 @@ async function kdCourierCamera(){
   }
 }
 function kdCourierLineItems(task){
-  return task.items.map(i=>'<div class="dayrow"><span><b>'+esc(i.qty)+' × '+esc(i.name)+'</b>'+
-    (i.menu==='soup'?' · leves':i.soup?' · levessel':' · leves nélkül')+
-    (i.dish&&i.menu!=='soup'?'<br><small>'+esc(i.dish)+'</small>':'')+'</span></div>').join('');
+  const order={soup:0,A:1,B:2,C:3};
+  return task.items.slice().sort((a,b)=>(order[a.menu]??4)-(order[b.menu]??4)).map(i=>{
+    const qty=Number(i.qty)||0;
+    const name=String(i.dish||i.name||'').trim();
+    const label=i.menu==='soup'?'Leves':['A','B','C'].includes(i.menu)?i.menu+'-menü':'';
+    const title=label?label+': '+name:name;
+    return '<div class="dayrow"><span><b>'+esc(title)+'</b> '+qty+' db</span></div>';
+  }).join('');
+}
+function kdCourierMapAddress(address){
+  // Keep full delivery address on the order; remove intercom, floor/door
+  // and apartment details ONLY for the Google Maps search query.
+  const text=String(address||'').trim();
+  if(!text)return '';
+  const cleaned=text.split(/(?:kaputelefon|csengő|emelet|ajtó|lakás|épület)\s*:/i)[0].trim();
+  const chunks=cleaned.split(',').map(x=>x.trim()).filter(Boolean);
+  if(chunks.length>=2){
+    const street=chunks[1].replace(/\s+\d+\s*\/\s*\d+\s*$/,'').trim();
+    return chunks[0]+', '+street;
+  }
+  return cleaned.replace(/\s+\d+\s*\/\s*\d+\s*$/,'').trim();
 }
 function kdCourierExact(task){
   if(task.type==='offer')return true;
@@ -146,7 +164,7 @@ delivery=function(){
 openDelivery=function(key){
  const task=kdCourierAll().find(t=>t.key===key);if(!task)return;
  const r=kdCourierRecord(task);if(!r)return;
- const maps='https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(task.address);
+ const maps='https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(kdCourierMapAddress(task.address));
  const exact=kdCourierExact(task);
  const other=r.days?'<div class="section"><h3>Teljes rendelés – további napok</h3>'+
    r.days.map(d=>'<div class="dayrow"><span>'+dateHU(d.date)+'</span><b>'+
