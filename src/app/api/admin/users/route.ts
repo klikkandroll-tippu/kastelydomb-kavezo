@@ -46,7 +46,7 @@ export async function PATCH(req:NextRequest){
  const auth=await superadmin(req);if(auth.error)return auth.error;
  try{
   const p=await body(req,3000),id=p.id;
-  if(typeof id!=="string"||!/^[a-f0-9-]{36}$/i.test(id))return json({error:"Érvénytelen felhasználó."},400);
+  if(p.action!=="permissions"&&(typeof id!=="string"||!/^[a-f0-9-]{36}$/i.test(id)))return json({error:"Érvénytelen felhasználó."},400);
   if(p.action==="permissions"){
    if(!["office","desk","courier"].includes(p.role)||!Array.isArray(p.pages)||
     p.pages.some((x:unknown)=>typeof x!=="string"||!["home","menu","offers","delivery","reservations","messages","clients"].includes(x)))
@@ -56,10 +56,13 @@ export async function PATCH(req:NextRequest){
      method:"PATCH",body:JSON.stringify({pages,updated_at:new Date().toISOString()})
    });
    if(!update.ok)return json({error:"A jogosultságok mentése sikertelen."},503);
-   const sessions=await db("kastelydomb_admin_sessions?user_id=in.("+encodeURIComponent(
-     (await (await db("kastelydomb_admin_users?select=id&role=eq."+encodeURIComponent(p.role))).json() as Array<{id:string}>).map(x=>x.id).join(",")
-   )+")",{method:"DELETE"});
-   if(!sessions.ok)return json({error:"A jogosultságok mentve, de a munkamenetek visszavonása nem sikerült."},503);
+   const roleUsers=await db("kastelydomb_admin_users?select=id&role=eq."+encodeURIComponent(p.role));
+   if(!roleUsers.ok)return json({error:"A jogosultságok mentve, de a munkamenetek visszavonása nem ellenőrizhető."},503);
+   for(const user of (await roleUsers.json()) as Array<{id:string}>){
+     const revoke=await db("kastelydomb_admin_sessions?user_id=eq."+encodeURIComponent(user.id),{method:"DELETE"});
+     if(!revoke.ok)return json({error:"A jogosultságok mentve, de a munkamenetek visszavonása részben sikertelen."},503);
+   }
+   await audit(auth.actor,"permissions_"+p.role,"00000000-0000-4000-8000-000000000000");
    return json({ok:true});
   }
   const fields:Record<string,unknown>={};
