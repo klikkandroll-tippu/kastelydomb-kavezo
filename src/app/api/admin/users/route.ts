@@ -11,9 +11,12 @@ async function superadmin(req:NextRequest){
  return {error:null,actor:account.username};
 }
 async function audit(actor:string,action:string,id:string){
- await db("kastelydomb_admin_user_audit",{method:"POST",body:JSON.stringify({
-  actor_label:actor,action,target_user_id:id
- })});
+ try{
+  const result=await db("kastelydomb_admin_user_audit",{method:"POST",body:JSON.stringify({
+   actor_label:actor,action,target_user_id:id
+  })});
+  if(!result.ok)console.error("Admin audit insert returned",result.status);
+ }catch{console.error("Admin audit write failed after account operation");}
 }
 export async function GET(req:NextRequest){
  const auth=await superadmin(req);if(auth.error)return auth.error;
@@ -36,10 +39,23 @@ export async function POST(req:NextRequest){
   const r=await db("kastelydomb_admin_users",{method:"POST",body:JSON.stringify({
    username,full_name:name,role:p.role,password_hash:encryptPassword(password),active:true
   })});
-  if(!r.ok)return json({error:"Felhasználó létrehozása sikertelen. A felhasználónév már foglalt lehet, vagy már van aktív futár."},409);
+  if(!r.ok){
+    const problem=await r.json().catch(()=>({}));
+    const code=String(problem.code||"");
+    const msg=String(problem.message||"");
+    if(code==="23505"){
+      if(msg.includes("kd_one_active_courier"))
+        return json({error:"Már van aktív futárfiók. Előbb tiltsa le a meglévőt."},409);
+      return json({error:"Ez a felhasználónév már foglalt. Válasszon másikat."},409);
+    }
+    console.error("Admin user insert failed",r.status,code);
+    return json({error:"A felhasználó adatbázisba mentése sikertelen. Kód: "+(code||String(r.status))},503);
+  }
   const rows:UserRow[]=await r.json();
-  if(rows[0])await audit(auth.actor,"create",rows[0].id);
-  return json({ok:true},201);
+  if(!Array.isArray(rows)||rows.length!==1||!rows[0].id)
+    return json({error:"A fiók mentését nem sikerült ellenőrizni; ellenőrizze a felhasználólistát."},503);
+  await audit(auth.actor,"create",rows[0].id);
+  return json({ok:true,user:{id:rows[0].id,username:rows[0].username,role:rows[0].role}},201);
  }catch{return json({error:"A felhasználó nem hozható létre."},503)}
 }
 export async function PATCH(req:NextRequest){
