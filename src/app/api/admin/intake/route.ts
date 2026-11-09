@@ -36,7 +36,14 @@ export async function GET(req: NextRequest) {
     const kind = req.nextUrl.searchParams.get("kind");
     if(courier&&kind&&kind!=="christmas")return json({error:"Ehhez az adattípushoz nincs futárjogosultság."},403);
     if (kind && !(kind in sources)) return json({ error: "Ismeretlen adattípus." }, 400);
-    const keys: Array<keyof typeof sources> = courier ? ["christmas"] : kind ? [kind as keyof typeof sources] : Object.keys(sources) as Array<keyof typeof sources>;
+    const enabled=new Set(account?.role==="superadmin"?["contacts","reservations","christmas"]:[
+      ...(account?.pages?.includes("messages")?["contacts"]:[]),
+      ...(account?.pages?.includes("reservations")?["reservations"]:[]),
+      ...(account?.pages?.includes("offers")||account?.pages?.includes("delivery")?["christmas"]:[])
+    ]);
+    if(kind&&!enabled.has(kind))return json({error:"Ehhez az adattípushoz nincs jogosultsága."},403);
+    const keys: Array<keyof typeof sources>=kind?[kind as keyof typeof sources]:
+      (Object.keys(sources) as Array<keyof typeof sources>).filter(x=>enabled.has(x));
     const out: Record<string, unknown[]> = {};
     const failed: string[] = [];
     for (const key of keys) {
@@ -45,7 +52,7 @@ export async function GET(req: NextRequest) {
     }
     // Payment receipts are read separately from order records to avoid conflating
     // payment status with manual confirmation. Omit on filtered, non-Christmas calls.
-    if (!kind || kind === "christmas") {
+    if (enabled.has("christmas") && (!kind || kind === "christmas")) {
       try {
         const receipts=await getRows("kastelydomb_special_payments?select=order_id,amount_huf,method,paid_at,is_test");
         const orderIds=new Set((out.christmas||[]).map((o:unknown)=>String((o as {id?:string}).id)));
