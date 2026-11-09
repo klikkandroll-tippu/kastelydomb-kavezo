@@ -83,7 +83,7 @@ function allowedForRole(account:SessionAccount,pathname:string,method:string){
   "/api/admin/confirm":"reservations",
   "/api/admin/special-payment":"offers"
  };
- if(role!=="superadmin" && requiredPage[pathname] && !account.pages?.includes(requiredPage[pathname])){
+ if(requiredPage[pathname] && !account.pages?.includes(requiredPage[pathname])){
    // Read-only courier access to holiday deliveries uses the delivery permission.
    if(!(pathname==="/api/admin/intake" && method==="GET" &&
          (account.pages||[]).some(p=>["offers","reservations","messages","delivery"].includes(p))) &&
