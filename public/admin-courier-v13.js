@@ -123,60 +123,106 @@ function kdCourierExact(task){
   const rows=(r?.originalItems||[]).filter(i=>i.date===task.date);
   return rows.length>0&&rows.every(i=>i.line_total_huf!==undefined&&Number.isFinite(Number(i.line_total_huf)));
 }
+
+function kdCourierFullDue(task){
+ const r=kdCourierRecord(task);
+ return r && !r.paid ? Number(r.orderTotal||0) : 0;
+}
+function kdCourierReceiptForDay(date){
+ const all=Array.isArray(state.receipts)?state.receipts:[];
+ return all.filter(r=>{
+  if(!r.collected_at)return false;
+  const localDate=new Intl.DateTimeFormat('sv-SE',{timeZone:'Europe/Budapest',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date(r.collected_at));
+  return localDate===date;
+ });
+}
+function kdCourierReceiptSum(items){return items.reduce((n,r)=>n+Number(r.amount_huf||0),0);}
+function kdCourierPaymentChoice(){
+ const e=q('#kd-courier-payment');
+ if(!e || !['cash','card'].includes(e.value)){
+  kdNotice('Válassza ki a tényleges fizetési módot: készpénz vagy bankkártya.');return;
+ }
+ return e.value;
+}
+deliveryAction=async function(key,action){
+ const task=kdCourierAll().find(t=>t.key===key),r=task?kdCourierRecord(task):null;
+ if(!task||!r)return;
+ if(!['delivered','paid'].includes(action)){kdNotice('Ez a művelet itt nem érhető el.');return;}
+ if(action==='paid'&&!task.delivered){kdNotice('Először jelölje a kiszállítást teljesítettnek.');return;}
+ if(action==='paid'&&r.paid){kdNotice('Ez a rendelés már ki van fizetve.');return;}
+ if(action==='paid'&&r.partialPaid){kdNotice('Korábbi részfizetés szerepel a rendelésen. Pénzügyi egyeztetés szükséges.');return;}
+ if(action==='paid'&&['Online bankkártya','Átutalás'].includes(r.payment)){
+  kdNotice('Előre fizetett vagy átutalásos rendelésnél a futár nem szedhet be újabb összeget.');return;
+ }
+ const payment=action==='paid'?kdCourierPaymentChoice():null;
+ if(action==='paid'&&!payment)return;
+ const amount=kdCourierFullDue(task);
+ if(action==='paid'&&(!Number.isSafeInteger(amount)||amount<=0)){
+  kdNotice('Nem állapítható meg a rendelés teljes, még beszedendő összege.');return;
+ }
+ if(action==='paid'&&!confirm('A teljes rendelés '+money(amount)+' összegét beszedték '+(payment==='cash'?'készpénzzel':'bankkártyával')+'. Rögzíted a fizetést?'))return;
+ try{
+  await kdFetch('/api/admin/delivery-status',{method:'POST',headers:{'Content-Type':'application/json'},
+   body:JSON.stringify({kind:task.type==='menu'?'menu':'special',id:r.uuid,date:task.date,action,payment})});
+  modalClose();
+  await kdLoad();
+  openDelivery(key);
+ }catch(e){kdNotice(e.message||'Az állapot mentése nem sikerült.')}
+};
 delivery=function(){
-  const day=ui.deliveryDate||today();
-  const all=deliveryTasks(day),tasks=all.filter(t=>kdCourierMatch(t,kdCourierQuery));
-  const completed=all.filter(t=>t.delivered),collected=all.filter(t=>t.collected);
-  const sum=arr=>arr.reduce((v,t)=>v+t.amount,0);
-  const cash=sum(collected.filter(t=>/készpénz/i.test(t.payment)));
-  const card=sum(collected.filter(t=>/kártya/i.test(t.payment)));
-  const settled=sum(collected.filter(t=>t.settled));
-  const pending=sum(collected.filter(t=>!t.settled));
-  const lookup='<div class="filters" style="margin-top:14px">'+
-    '<label class="field" style="min-width:250px;flex:1">Keresés név vagy QR-kód alapján'+
-    '<input id="kd-courier-search" type="search" style="width:100%" value="'+escapeAttr(kdCourierQuery)+
-    '" placeholder="Vendég neve vagy QR-azonosító" oninput="kdCourierSearch(this.value)"></label>'+
-    '<button class="btn primary" onclick="kdCourierCamera()">QR-kód beolvasása</button>'+
-    '<button class="btn" onclick="kdCourierClear()">Keresés törlése</button>'+
-    '<span id="kd-courier-count">'+tasks.length+' találat</span></div>';
-  const rows=tasks.map(t=>'<tr class="kd-courier-row" data-key="'+escapeAttr(t.key)+'">'+
-    '<td><b>'+esc(t.name)+'</b><br>'+esc(t.address)+'</td>'+
-    '<td>'+kdCourierLineItems(t)+'</td>'+
-    '<td><b>'+money(t.paid||t.settled?0:t.amount)+'</b><br><small>'+esc(t.payment)+'</small></td>'+
-    '<td>'+badge(t.delivered,'Kiszállítva','Kiszállításra vár')+
-    '<br>'+badge(t.settled,'Elszámolva',t.collected?'Pénz beszedve':'Fizetésre vár')+'</td>'+
-    '<td><button class="btn small" onclick="openDelivery(\''+escapeAttr(t.key)+'\')">Megnézem</button></td></tr>').join('');
-  return '<div class="panel"><div class="panel-head"><h2>Kiszállítási feladatok</h2>'+
-    '<label class="field">Nap<input type="date" value="'+day+'" onchange="ui.deliveryDate=this.value;render()"></label></div>'+
-    '<p class="muted">Egy futár · napi menü és alkalmi rendelések.</p>'+lookup+
-    th(['Ügyfél és cím','Kiszállítandó tételek','Beszedendő','Állapot','Művelet'])+
-    rows+(tasks.length?'':'<tr><td colspan="5" class="empty">Nincs kiszállítási feladat.</td></tr>')+
-    tableEnd()+'<p id="kd-courier-nohits" style="display:none" class="muted">Nincs találat.</p></div>'+
-    '<div class="panel"><h2>Napi futárelszámolás · '+dateHU(day)+'</h2><div class="gridinfo">'+
-    info('Összes kiszállítási feladat',all.length+' cím/feladat')+
-    info('Teljesített kiszállítások',completed.length+' feladat')+
-    info('Beszedett összeg',money(sum(collected)))+
-    info('Készpénz',money(cash))+info('Bankkártya',money(card))+
-    info('Pultnál elszámolt',money(settled))+info('Elszámolásra vár',money(pending))+
-    '</div><p class="hint">Az elszámolás a nap összes kiszállításából számolódik, a keresőszűrés nem módosítja.</p>'+
-    controls('delivery')+'</div>';
+ const day=ui.deliveryDate||today();
+ const all=deliveryTasks(day),tasks=all.filter(t=>kdCourierMatch(t,kdCourierQuery));
+ const completed=all.filter(t=>t.delivered);
+ const receipts=kdCourierReceiptForDay(day);
+ const cash=receipts.filter(r=>r.method==='cash'),card=receipts.filter(r=>r.method==='card');
+ const lookup='<div class="filters" style="margin-top:14px">'+
+   '<label class="field" style="min-width:250px;flex:1">Keresés név vagy QR-kód alapján'+
+   '<input id="kd-courier-search" type="search" style="width:100%" value="'+escapeAttr(kdCourierQuery)+
+   '" placeholder="Vendég neve vagy QR-azonosító" oninput="kdCourierSearch(this.value)"></label>'+
+   '<button class="btn primary" onclick="kdCourierCamera()">QR-kód beolvasása</button>'+
+   '<button class="btn" onclick="kdCourierClear()">Keresés törlése</button>'+
+   '<span id="kd-courier-count">'+tasks.length+' találat</span></div>';
+ const rows=tasks.map(t=>{
+   const r=kdCourierRecord(t);
+   return '<tr class="kd-courier-row" data-key="'+escapeAttr(t.key)+'">'+
+   '<td><b>'+esc(t.name)+'</b><br>'+esc(t.address)+'</td>'+
+   '<td>'+kdCourierLineItems(t)+'</td>'+
+   '<td><b>'+money(kdCourierFullDue(t))+'</b><br><small>'+esc(t.payment)+'</small></td>'+
+   '<td>'+badge(t.delivered,'Kiszállítva','Kiszállításra vár')+
+   '<br>'+badge(!!r?.paid,'Fizetve','Fizetésre vár')+'</td>'+
+   '<td><button class="btn small" onclick="openDelivery(\''+escapeAttr(t.key)+'\')">Megnézem</button></td></tr>';
+ }).join('');
+ return '<div class="panel"><div class="panel-head"><h2>Kiszállítási feladatok</h2>'+
+   '<label class="field">Nap<input type="date" value="'+day+'" onchange="ui.deliveryDate=this.value;render()"></label></div>'+
+   '<p class="muted">Egy futár · a rendelés teljes összege egyszer fizetendő, nem naponta.</p>'+lookup+
+   th(['Ügyfél és cím','Kiszállítandó tételek','Beszedendő','Állapot','Művelet'])+
+   rows+(tasks.length?'':'<tr><td colspan="5" class="empty">Nincs kiszállítási feladat.</td></tr>')+
+   tableEnd()+'<p id="kd-courier-nohits" style="display:none" class="muted">Nincs találat.</p></div>'+
+   '<div class="panel"><h2>Napi futárelszámolás · '+dateHU(day)+'</h2><div class="gridinfo">'+
+   info('Összes kiszállítási feladat',all.length+' cím/feladat')+
+   info('Teljesített kiszállítások',completed.length+' feladat')+
+   info('Aznap beszedett összeg',money(kdCourierReceiptSum(receipts)))+
+   info('Készpénz',money(kdCourierReceiptSum(cash)))+
+   info('Bankkártya',money(kdCourierReceiptSum(card)))+
+   '</div><p class="hint">A futár elszámolása a tényleges, adott napon rögzített teljes rendelési befizetésekből áll össze. Egy rendelés egyszer fizethető.</p>'+
+   controls('delivery')+'</div>';
 };
 openDelivery=function(key){
  const task=kdCourierAll().find(t=>t.key===key);if(!task)return;
  const r=kdCourierRecord(task);if(!r)return;
  const maps='https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(kdCourierMapAddress(task.address));
- const exact=kdCourierExact(task);
- const other=r.days?'<div class="section"><h3>Teljes rendelés – további napok</h3>'+
-   r.days.map(d=>'<div class="dayrow"><span>'+dateHU(d.date)+'</span><b>'+
-   d.items.filter(i=>i.menu!=='soup').map(i=>i.qty+' × '+esc(i.name)).join(', ')+'</b></div>').join('')+'</div>':'';
+ const due=kdCourierFullDue(task);
+ const paid=!!r.paid;
+ const paymentOptions=paid?'':(
+   '<label class="field" style="display:block;margin:14px 0">Fizetéskor választott mód'+
+   '<select id="kd-courier-payment" style="display:block;min-width:230px;margin-top:6px;padding:10px" aria-label="Fizetés módja">'+
+   '<option value="">Válasszon fizetési módot</option><option value="cash">Készpénz</option>'+
+   '<option value="card">Bankkártya</option></select></label>');
  const actions='<div class="actions">'+
-  '<button class="btn" onclick="deliveryAction(\''+escapeAttr(task.key)+'\',\'delivered\')" '+(task.delivered?'disabled':'')+'>Kiszállítva</button>'+
-  '<button class="btn" onclick="deliveryAction(\''+escapeAttr(task.key)+'\',\'collected\')" '+
-   (task.collected||task.paid||!task.delivered||!exact?'disabled':'')+'>'+
-   (task.collected?'Pénz beszedve':'Fizetés teljesítve – pénz beszedve')+'</button>'+
-  (ui.role!=='courier'?'<button class="btn primary" onclick="deliveryAction(\''+escapeAttr(task.key)+'\',\'settled\')" '+
-   (task.settled||!task.collected?'disabled':'')+'>'+(task.settled?'Elszámolva':'Elszámolás jóváhagyása')+'</button>':'')+
-  '</div>';
+  '<button class="btn" onclick="deliveryAction(\''+escapeAttr(task.key)+'\',\'delivered\')" '+
+   (task.delivered?'disabled':'')+'>'+(task.delivered?'Kiszállítva':'Kiszállítva')+'</button>'+
+  '<button class="btn primary" onclick="deliveryAction(\''+escapeAttr(task.key)+'\',\'paid\')" '+
+   (paid||!task.delivered||r.partialPaid?'disabled':'')+'>'+(paid?'Fizetve':'Fizetve')+'</button></div>';
  modal('Kiszállítás · '+dateHU(task.date)+' · '+esc(task.name),
   '<div class="section"><h3>Vendég és szállítási adatok</h3><div class="gridinfo">'+
   info('Név',task.name)+info('Telefon',task.phone)+info('E-mail',r.email)+
@@ -184,13 +230,13 @@ openDelivery=function(key){
   '<p><a class="btn" target="_blank" rel="noopener noreferrer" href="'+esc(maps)+'">Google Térkép megnyitása</a> '+
   '<a class="btn" href="tel:'+escapeAttr(task.phone)+'">Hívás</a></p></div>'+
   '<div class="section"><h3>Pontosan kiszállítandó ételek</h3>'+kdCourierLineItems(task)+'</div>'+
-  other+'<div class="section"><h3>Megjegyzés</h3><p>'+esc(r.note||'Nincs megjegyzés.')+'</p></div>'+
+  '<div class="section"><h3>Megjegyzés</h3><p>'+esc(r.note||'Nincs megjegyzés.')+'</p></div>'+
   '<div class="section"><h3>Fizetés és elszámolás</h3><div class="gridinfo">'+
-  info('Fizetési mód',task.payment)+info('Napi összeg',money(task.amount))+
-  info('Beszedendő',money(task.paid||task.settled?0:task.amount))+
-  info('Kiszállítás',task.delivered?'Kiszállítva':'Kiszállításra vár')+
-  info('Pénzbeszedés',task.collected?'Pénz beszedve':'Fizetésre vár')+
-  info('Pultos elszámolás',task.settled?'Elszámolva':'Elszámolásra vár')+'</div>'+
-  (!exact?'<p class="hint">Régebbi megrendelés: a napi összeg ellenőrzéséig a pénzbeszedés lezárása nem engedélyezett.</p>':'')+
-  actions+'</div>'+kdQrBlock(task.type==='menu'?'KASTELYDOMB:MENU:'+r.uuid:r.id));
+  info('Rendelési azonosító',r.id)+
+  info('Fizetési mód',paid&&r.receipt?(r.receipt.method==='cash'?'Készpénz':'Bankkártya'):r.payment)+
+  info('Beszedendő összeg',money(due))+'</div>'+
+  (paid?'<p class="hint">A rendelés teljes összege már ki van fizetve.</p>':'')+
+  (r.partialPaid?'<p class="hint">Korábbi részfizetés szerepel. Pénzügyi egyeztetés szükséges.</p>':'')+
+  paymentOptions+actions+'</div>'
+ );
 };
