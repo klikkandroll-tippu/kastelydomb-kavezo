@@ -2,6 +2,7 @@
 let kdCurrentAccount=null;
 let kdUserList=[];
 let kdUsersBusy=false;
+let kdRolePermissionRows=[];
 const kdRoleLabels={office:'Iroda',desk:'Pultos',courier:'Futár'};
 const kdRolePaths={
  office:'Kezdőlap, napi menü, rendelések, kiszállítás, asztalfoglalások, kapcsolatfelvétel, ügyfelek',
@@ -16,6 +17,7 @@ async function kdAccountInit(){
   const realRole=result.account.role==='superadmin'?'admin':result.account.role;
   ui.role=realRole;
   customPerms=JSON.parse(JSON.stringify(roleDefaults));
+  if(realRole!=='admin'&&Array.isArray(result.account.pages))customPerms[realRole]=result.account.pages;
   const select=q('#role');
   if(select){
    select.value=realRole;
@@ -49,11 +51,17 @@ settings=function(){
  const list='<div class="panel"><div class="panel-head"><h2>Felhasználói fiókok</h2>'+
  '<button class="btn" onclick="kdLoadUsers()">Lista frissítése</button></div>'+
  '<p id="kd-user-message" class="muted"></p><div id="kd-user-list"><p class="muted">Felhasználók betöltése…</p></div></div>';
- const permissions='<div class="panel"><h2>Jogosultsági kategóriák</h2>'+
- Object.entries(kdRolePaths).map(([role,items])=>
+ const permissions='<div class="panel"><h2>Jogosultsági kategóriák – elérhető menüpontok</h2>'+
+ '<p class="muted">A jelölések az adatbázisba menthetők. Változtatáskor az érintett felhasználók újra belépnek.</p>'+
+ Object.entries(kdRolePaths).map(([role])=>
  '<div class="dayblock"><div class="dayhead">'+kdRoleLabels[role]+'</div>'+
- '<div class="daybody">'+items+'</div></div>').join('')+
- '<div class="notice">A hozzáférési korlátokat a szerver ellenőrzi. A menüpontok módosítása nem történhet pusztán a böngészőben. Jelenleg egy aktív futárfiók engedélyezett.</div></div>';
+ '<div class="daybody"><div class="permgrid">'+
+ navItems.filter(([page])=>page!=='settings').map(([page,title])=>
+ '<label class="perm"><input type="checkbox" data-role="'+role+'" data-page="'+page+'" '+
+ (customPerms[role]?.includes(page)?'checked':'')+
+ (page==='home'?' disabled':'')+'> '+esc(title)+'</label>').join('')+
+ '</div><div class="actions"><button class="btn primary" onclick="kdSaveRolePermissions(\''+role+'\')">Jogosultságok mentése</button></div></div></div>').join('')+
+ '<div class="notice">A Kezdőlap minden munkakörnél kötelező. A futárból egyszerre csak egy aktív fiók engedélyezett.</div></div>';
  return create+list+permissions;
 };
 function kdUserNotice(text){const node=q('#kd-user-message');if(node)node.textContent=text}
@@ -63,6 +71,9 @@ async function kdLoadUsers(){
  try{
   const data=await kdFetch('/api/admin/users');
   kdUserList=Array.isArray(data.users)?data.users:[];
+  kdRolePermissionRows=Array.isArray(data.rolePermissions)?data.rolePermissions:[];
+  for(const p of kdRolePermissionRows){if(kdRolePaths[p.role]&&Array.isArray(p.pages))customPerms[p.role]=p.pages;}
+  render();
   const node=q('#kd-user-list');
   if(!node)return;
   const roleOptions=(value)=>Object.entries(kdRoleLabels).map(([role,label])=>
@@ -82,6 +93,18 @@ async function kdLoadUsers(){
   kdUserNotice('A fiókok és jogosultságok a Supabase-adatbázisban tárolódnak.');
  }catch(e){kdUserNotice('A felhasználólista nem tölthető be: '+(e.message||'hiba'))}
  finally{kdUsersBusy=false}
+}
+async function kdSaveRolePermissions(role){
+ if(!kdRolePaths[role])return;
+ const pages=Array.from(document.querySelectorAll('input[data-role="'+role+'"][data-page]'))
+  .filter(el=>el.checked).map(el=>el.dataset.page);
+ try{
+  await kdFetch('/api/admin/users',{method:'PATCH',headers:{'Content-Type':'application/json'},
+   body:JSON.stringify({action:'permissions',role,pages})});
+  customPerms[role]=Array.from(new Set(['home',...pages]));
+  kdUserNotice('A szerepkör jogosultságai elmentve. Az érintett felhasználók korábbi belépései lejártak.');
+  await kdLoadUsers();
+ }catch(e){kdUserNotice(e.message||'A jogosultságok nem menthetők.')}
 }
 async function kdCreateUser(event){
  event.preventDefault();
