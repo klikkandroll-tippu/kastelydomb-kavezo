@@ -1,10 +1,12 @@
 import { NextRequest } from "next/server";
-import { guard, db, json } from "@/lib/admin-server";
+import { guard, db, json, sessionAccount } from "@/lib/admin-server";
 export const dynamic = "force-dynamic";
 export async function GET(req: NextRequest) {
   try {
     const denied = await guard(req);
     if (denied) return denied;
+    const account=await sessionAccount(req);
+    const courier=account?.role==="courier";
     const payments = [];
     for (let offset = 0; offset < 10000; offset += 1000) {
       const r = await db(
@@ -26,7 +28,7 @@ export async function GET(req: NextRequest) {
       );
       if (!r.ok) throw Error();
       const rows = await r.json();
-      orders.push(...rows);
+      orders.push(...(courier?rows.filter((o:{fulfillment:string})=>o.fulfillment==="delivery"):rows));
       if (rows.length < 1000)
         return json({
           orders: orders.map((o) => ({
