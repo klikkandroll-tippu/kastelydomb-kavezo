@@ -24,6 +24,9 @@ async function kdAccountInit(){
    select.disabled=true;
    select.title='A jogosultságot a szuperadmin kezeli';
   }
+  // Display the actual session role and keep the UI's role selector read-only.
+  const originalRoleChange=select?.getAttribute('onchange');
+  if(select&&originalRoleChange)select.removeAttribute('onchange');
   const label=document.createElement('div');
   label.className='muted';
   label.style.cssText='font-size:12px;margin-top:5px;text-align:right';
@@ -42,12 +45,12 @@ settings=function(){
  '<form id="kd-user-form" onsubmit="kdCreateUser(event)" autocomplete="off">'+
  '<div class="gridinfo">'+
  '<label class="field">Személy neve<input required id="kd-user-name" maxlength="120" autocomplete="off" placeholder="Teljes név"></label>'+
- '<label class="field">Felhasználónév<input required id="kd-user-login" maxlength="40" minlength="3" autocomplete="off" placeholder="pl. kiss.anna"></label>'+
- '<label class="field">Kezdő jelszó<input required type="password" id="kd-user-password" minlength="12" maxlength="128" autocomplete="new-password"></label>'+
+ '<label class="field">Felhasználónév<input required id="kd-user-login" maxlength="40" minlength="3" pattern="[a-zA-Z0-9._-]{3,40}" title="3–40 karakter; angol betűk, számok, pont, kötőjel vagy aláhúzás" autocomplete="off" placeholder="pl. kiss.anna"></label>'+
+ '<label class="field">Kezdő jelszó<input required type="password" id="kd-user-password" minlength="12" maxlength="128" autocomplete="new-password" title="Legalább 12 karakter, betű, szám és különleges karakter"></label>'+
  '<label class="field">Jogosultsági kategória<select id="kd-user-role" required>'+
  '<option value="office">Iroda</option><option value="desk">Pultos</option><option value="courier">Futár</option>'+
  '</select></label></div><p class="hint">Legalább 12 karakteres jelszó szükséges, benne betűvel, számmal és különleges karakterrel. Jelszavakat nem jelenítünk meg és nem tárolunk olvasható formában.</p>'+
- '<button class="btn primary" id="kd-user-create" type="submit">Felhasználó hozzáadása</button></form></div>';
+ '<button class="btn primary" id="kd-user-create" type="submit">Felhasználó hozzáadása</button><p id="kd-user-create-message" role="status" aria-live="polite" style="margin-top:10px"></p></form></div>';
  const list='<div class="panel"><div class="panel-head"><h2>Felhasználói fiókok</h2>'+
  '<button class="btn" onclick="kdLoadUsers()">Lista frissítése</button></div>'+
  '<p id="kd-user-message" class="muted"></p><div id="kd-user-list"><p class="muted">Felhasználók betöltése…</p></div></div>';
@@ -73,7 +76,8 @@ async function kdLoadUsers(){
   kdUserList=Array.isArray(data.users)?data.users:[];
   kdRolePermissionRows=Array.isArray(data.rolePermissions)?data.rolePermissions:[];
   for(const p of kdRolePermissionRows){if(kdRolePaths[p.role]&&Array.isArray(p.pages))customPerms[p.role]=p.pages;}
-  render();
+  // Refresh the account list in place; rendering the entire page here destroys
+  // the submission form and its accessible status message during an async save.
   const node=q('#kd-user-list');
   if(!node)return;
   const roleOptions=(value)=>Object.entries(kdRoleLabels).map(([role,label])=>
@@ -106,19 +110,49 @@ async function kdSaveRolePermissions(role){
   await kdLoadUsers();
  }catch(e){kdUserNotice(e.message||'A jogosultságok nem menthetők.')}
 }
+function kdCreateError(message){
+ const field=q('#kd-user-create-message');
+ if(field){field.textContent=message;field.style.color='#a32424';}
+ kdUserNotice(message);
+}
 async function kdCreateUser(event){
  event.preventDefault();
- const node=q('#kd-user-create');
- if(node)node.disabled=true;
+ const form=q('#kd-user-form');
+ const button=q('#kd-user-create');
+ const note=q('#kd-user-create-message');
+ if(!form||!button)return;
+ const p={name:q('#kd-user-name').value.trim(),
+  username:q('#kd-user-login').value.trim().toLowerCase(),
+  password:q('#kd-user-password').value,role:q('#kd-user-role').value};
+ if(!/^[a-z0-9._-]{3,40}$/.test(p.username)){
+  kdCreateError('A felhasználónév 3–40 karakter lehet, kizárólag ékezet nélküli betűkkel, számokkal, ponttal, kötőjellel vagy aláhúzással.');
+  return;
+ }
+ if(p.password.length<12||!/[a-záéíóöőúüű]/i.test(p.password)||!/[0-9]/.test(p.password)||
+  !/[^a-zA-Z0-9áéíóöőúüűÁÉÍÓÖŐÚÜŰ]/.test(p.password)){
+  kdCreateError('Nem megfelelő jelszó: legalább 12 karakter, minimum egy betű, egy szám és egy különleges karakter szükséges.');
+  return;
+ }
+ button.disabled=true;
+ button.textContent='Felhasználó mentése…';
+ if(note){note.textContent='A felhasználó adatainak mentése folyamatban…';note.style.color='';}
  try{
-  const p={name:q('#kd-user-name').value,username:q('#kd-user-login').value,
-   password:q('#kd-user-password').value,role:q('#kd-user-role').value};
-  await kdFetch('/api/admin/users',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(p)});
-  q('#kd-user-form').reset();
+  const result=await kdFetch('/api/admin/users',{
+   method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(p)
+  });
+  if(!result.ok)throw Error('A szerver nem igazolta vissza a felhasználó létrehozását.');
+  const currentForm=q('#kd-user-form');
+  if(currentForm)currentForm.reset();
   await kdLoadUsers();
-  kdUserNotice('A személyes felhasználói fiók létrejött. A jelszót biztonságos csatornán adja át.');
- }catch(e){kdUserNotice(e.message||'Nem sikerült létrehozni a fiókot.')}
- finally{if(node)node.disabled=false}
+  if(!kdUserList.some(u=>u.username===p.username)){
+   kdCreateError('A mentés visszaigazolása megérkezett, de az új felhasználó nem szerepel a listában. Ellenőrizze az adatbázist.');
+  }else{
+   const message='A felhasználó létrejött, és megjelent a listában. A jelszót biztonságos csatornán adja át.';
+   if(note){note.textContent=message;note.style.color='#215a39';}
+   kdUserNotice(message);
+  }
+ }catch(e){kdCreateError((e&&e.message)||'Nem sikerült létrehozni a felhasználót.')}
+ finally{button.disabled=false;button.textContent='Felhasználó hozzáadása';}
 }
 async function kdUserEdit(i){
  const u=kdUserList[i];if(!u)return;
