@@ -27,26 +27,13 @@ async function kdAccountInit(){
   // Display the actual session role and keep the UI's role selector read-only.
   const originalRoleChange=select?.getAttribute('onchange');
   if(select&&originalRoleChange)select.removeAttribute('onchange');
-  // Keep #role for the approved V1.3 rendering logic, while removing its
-  // meaningless visible selector. The logout control lives in the same header.
+  // The approved header contains the logout control directly; never remove it.
+  // Only populate the visible identity after resolving the authenticated session.
   const roleField=select?.parentElement;
-  const header=roleField?.parentElement;
-  if(roleField&&header){
-    roleField.style.display='none';
-    header.querySelectorAll('#kd-top-logout,#kd-top-account').forEach(node=>node.remove());
-    const accountLabel=document.createElement('span');
-    accountLabel.id='kd-top-account';
-    accountLabel.style.cssText='font-size:13px;font-weight:600;color:#3e5d4a;white-space:nowrap';
-    accountLabel.textContent=result.account.full_name+' · '+(realRole==='admin'?'Szuperadmin':kdRoleLabels[realRole]);
-    const logout=document.createElement('button');
-    logout.id='kd-top-logout';
-    logout.type='button';
-    logout.className='btn';
-    logout.textContent='Kijelentkezés';
-    logout.style.cssText='font-weight:750;white-space:nowrap;padding:11px 16px;border-color:#c0d7c6';
-    logout.addEventListener('click',kdLogout);
-    header.append(accountLabel,logout);
-  }
+  if(roleField)roleField.style.display='none';
+  const topName=document.getElementById('kd-top-account');
+  if(topName)topName.textContent=result.account.full_name+' · '+
+    (realRole==='admin'?'Szuperadmin':kdRoleLabels[realRole]);
   render();
  }catch{kdNotice('Nem sikerült azonosítani a bejelentkezett felhasználót. Kérjük, frissítse az oldalt.');}
 }
