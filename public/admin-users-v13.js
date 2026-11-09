@@ -30,11 +30,62 @@ async function kdAccountInit(){
   const label=document.createElement('div');
   label.className='muted';
   label.style.cssText='font-size:12px;margin-top:5px;text-align:right';
-  label.textContent=result.account.full_name+' · '+(realRole==='admin'?'Szuperadmin':kdRoleLabels[realRole]);
+  label.textContent='Bejelentkezve: '+result.account.full_name+' · '+(realRole==='admin'?'Szuperadmin':kdRoleLabels[realRole]);
   select?.parentElement?.appendChild(label);
+  kdShowSessionControls(result.account);
   render();
  }catch{kdNotice('Nem sikerült azonosítani a bejelentkezett felhasználót. Kérjük, frissítse az oldalt.');}
 }
+function kdShowSessionControls(account){
+ const aside=document.querySelector('.side');
+ if(!aside)return;
+ let section=document.getElementById('kd-session-panel');
+ if(!section){
+   section=document.createElement('section');
+   section.id='kd-session-panel';
+   section.setAttribute('aria-label','Bejelentkezett felhasználó');
+   section.style.cssText='margin:22px 12px 10px;padding:13px;border:1px solid #d3e4d8;border-radius:12px;background:#f3f8f4';
+   const footer=aside.querySelector('.sidefoot');
+   if(footer)aside.insertBefore(section,footer);
+   else aside.appendChild(section);
+ }
+ section.replaceChildren();
+ const caption=document.createElement('div');
+ caption.textContent='Bejelentkezve';
+ caption.style.cssText='font-size:12px;font-weight:700;color:#52695a;margin-bottom:4px';
+ const name=document.createElement('strong');
+ name.textContent=account.full_name||account.username;
+ name.style.cssText='display:block;font-size:15px;word-break:break-word';
+ const role=document.createElement('div');
+ role.textContent=account.role==='superadmin'?'Szuperadmin':(kdRoleLabels[account.role]||account.role);
+ role.style.cssText='font-size:12px;color:#607568;margin-top:3px';
+ const button=document.createElement('button');
+ button.id='kd-logout';
+ button.type='button';
+ button.className='btn';
+ button.textContent='Kijelentkezés';
+ button.style.cssText='display:flex;width:100%;margin-top:13px;font-weight:750;border-color:#bfcfc4';
+ button.addEventListener('click',kdLogout);
+ section.append(caption,name,role,button);
+}
+let kdLoggingOut=false;
+async function kdLogout(){
+ if(kdLoggingOut)return;
+ const button=document.getElementById('kd-logout');
+ kdLoggingOut=true;
+ if(button){button.disabled=true;button.textContent='Kijelentkezés…';}
+ try{
+  await kdFetch('/api/admin/session',{method:'DELETE'});
+  // Both the secure HTTP-only session cookie and its database row are revoked
+  // by the server. Replace the iframe's parent route so the login form appears.
+  window.top.location.replace('/admin');
+ }catch(e){
+  kdLoggingOut=false;
+  if(button){button.disabled=false;button.textContent='Kijelentkezés';}
+  kdNotice('A kijelentkezés nem sikerült. Ne hagyja felügyelet nélkül a bejelentkezett adminfelületet. '+(e.message||''));
+ }
+}
+
 const kdOriginalGo=go;
 go=function(page){kdOriginalGo(page);if(page==='settings'&&kdCurrentAccount?.role==='superadmin')kdLoadUsers()};
 const kdOriginalSettings=settings;
