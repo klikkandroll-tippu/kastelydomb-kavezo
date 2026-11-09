@@ -19,7 +19,9 @@ export async function GET(req:NextRequest){
  const auth=await superadmin(req);if(auth.error)return auth.error;
  const r=await db("kastelydomb_admin_users?select=id,full_name,username,role,active,created_at,last_login_at&order=created_at.asc");
  if(!r.ok)return json({error:"A felhasználók nem érhetők el."},503);
- return json({users:await r.json()});
+ const roles=await db("kastelydomb_admin_role_permissions?select=role,pages&order=role");
+ if(!roles.ok)return json({error:"A jogosultsági beállítások nem érhetők el."},503);
+ return json({users:await r.json(),rolePermissions:await roles.json()});
 }
 export async function POST(req:NextRequest){
  const auth=await superadmin(req);if(auth.error)return auth.error;
@@ -45,6 +47,21 @@ export async function PATCH(req:NextRequest){
  try{
   const p=await body(req,3000),id=p.id;
   if(typeof id!=="string"||!/^[a-f0-9-]{36}$/i.test(id))return json({error:"Érvénytelen felhasználó."},400);
+  if(p.action==="permissions"){
+   if(!["office","desk","courier"].includes(p.role)||!Array.isArray(p.pages)||
+    p.pages.some((x:unknown)=>typeof x!=="string"||!["home","menu","offers","delivery","reservations","messages","clients"].includes(x)))
+    return json({error:"Érvénytelen szerepkör vagy menüjogosultság."},400);
+   const pages=Array.from(new Set(["home",...p.pages]));
+   const update=await db("kastelydomb_admin_role_permissions?role=eq."+encodeURIComponent(p.role),{
+     method:"PATCH",body:JSON.stringify({pages,updated_at:new Date().toISOString()})
+   });
+   if(!update.ok)return json({error:"A jogosultságok mentése sikertelen."},503);
+   const sessions=await db("kastelydomb_admin_sessions?user_id=in.("+encodeURIComponent(
+     (await (await db("kastelydomb_admin_users?select=id&role=eq."+encodeURIComponent(p.role))).json() as Array<{id:string}>).map(x=>x.id).join(",")
+   )+")",{method:"DELETE"});
+   if(!sessions.ok)return json({error:"A jogosultságok mentve, de a munkamenetek visszavonása nem sikerült."},503);
+   return json({ok:true});
+  }
   const fields:Record<string,unknown>={};
   let action="edit";
   if(p.action==="password"){
