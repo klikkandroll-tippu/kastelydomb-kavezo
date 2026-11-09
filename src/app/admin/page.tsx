@@ -3,15 +3,16 @@ import {useEffect,useState} from "react";
 export default function AdminPage(){
  const [authenticated,setAuthenticated]=useState<boolean|null>(null);
  const [password,setPassword]=useState("");
+ const [username,setUsername]=useState("");
  const [error,setError]=useState("");
  const [busy,setBusy]=useState(false);
  useEffect(()=>{fetch("/api/admin/session",{cache:"no-store"}).then(r=>r.json()).then(d=>setAuthenticated(Boolean(d.authenticated))).catch(()=>setAuthenticated(false))},[]);
  async function login(){
    setBusy(true);setError("");
    try{
-    const r=await fetch("/api/admin/session",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({password})});
+    const r=await fetch("/api/admin/session",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({username,password})});
     const d=await r.json();if(!r.ok)throw Error(d.error||"Sikertelen belépés.");
-    setAuthenticated(true);setPassword("");
+    setAuthenticated(true);setPassword("");setUsername("");
    }catch(e){setError(e instanceof Error?e.message:"Belépési hiba.");}
    finally{setBusy(false)}
  }
@@ -21,7 +22,8 @@ export default function AdminPage(){
   <section style={{padding:32,border:"1px solid #dce8df",background:"white",borderRadius:16,width:"min(420px,90vw)"}}>
   <h1 style={{marginTop:0,color:"#124731"}}>Kastélydomb admin</h1>
   <p>V1.3 · Integrációs teszt folyamatban</p>
-  <label>Adminjelszó<input type="password" value={password} onChange={e=>setPassword(e.target.value)} onKeyDown={e=>{if(e.key==="Enter")void login()}} style={{display:"block",width:"100%",padding:12,margin:"12px 0",boxSizing:"border-box"}}/></label>
+  <label>Felhasználónév (a régi szuperadmin belépéshez hagyd üresen)<input type="text" autoComplete="username" value={username} onChange={e=>setUsername(e.target.value)} style={{display:"block",width:"100%",padding:12,margin:"12px 0",boxSizing:"border-box"}}/></label>
+  <label>Jelszó<input type="password" value={password} onChange={e=>setPassword(e.target.value)} onKeyDown={e=>{if(e.key==="Enter")void login()}} style={{display:"block",width:"100%",padding:12,margin:"12px 0",boxSizing:"border-box"}}/></label>
   <button disabled={busy||!password} onClick={()=>void login()} style={{padding:"11px 22px",background:"#196b49",color:"white",border:0,borderRadius:9,cursor:"pointer"}}>Belépés</button>
   {error&&<p style={{color:"#b33"}}>{error}</p>}</section></main>;
 }
