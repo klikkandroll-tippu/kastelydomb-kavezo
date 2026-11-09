@@ -69,6 +69,7 @@ export async function authorized(req: NextRequest){return !!(await sessionAccoun
 function allowedForRole(role:SessionAccount["role"],pathname:string,method:string){
  if(role==="superadmin")return true;
  if(pathname==="/api/admin/users")return false;
+ if(pathname==="/api/admin/shell")return method==="GET";
  if(pathname==="/api/admin/notes")return role!=="courier";
  if(pathname==="/api/admin/confirm")return role!=="courier";
  if(pathname==="/api/admin/special-payment")return role!=="courier";
