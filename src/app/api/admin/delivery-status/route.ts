@@ -1,5 +1,5 @@
 import {NextRequest} from "next/server";
-import {guard,db,rpc,json,body} from "@/lib/admin-server";
+import {guard,db,rpc,json,body,sessionAccount} from "@/lib/admin-server";
 export const runtime="nodejs";
 export const dynamic="force-dynamic";
 const uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -13,7 +13,27 @@ export async function GET(req:NextRequest){
     db("kastelydomb_payments?select=order_id,amount_huf,method,created_at&limit=1000")
   ]);
   if(!progress.ok||!receipts.ok||!prior.ok)return json({error:"A futárfeladatok vagy a befizetések nem tölthetők be."},503);
-  return json({progress:await progress.json(),receipts:await receipts.json(),priorPayments:await prior.json()});
+  const account=await sessionAccount(req);
+  const allProgress: Array<{kind:string;order_id:string}>=await progress.json();
+  const allReceipts: Array<{kind:string;order_id:string}>=await receipts.json();
+  const allPrior: Array<{order_id:string}>=await prior.json();
+  if(account?.role==="courier"){
+    const [orders,special]=await Promise.all([
+      db("kastelydomb_orders?select=id&fulfillment=eq.delivery"),
+      db("kastelydomb_christmas_orders?select=id&fulfillment=eq.delivery")
+    ]);
+    if(!orders.ok||!special.ok)return json({error:"A futár jogosultságai nem ellenőrizhetők."},503);
+    const menuIds=new Set(((await orders.json()) as Array<{id:string}>).map(x=>x.id));
+    const specialIds=new Set(((await special.json()) as Array<{id:string}>).map(x=>x.id));
+    const allowed=(x:{kind:string;order_id:string})=>
+      x.kind==="menu"?menuIds.has(x.order_id):x.kind==="special"&&specialIds.has(x.order_id);
+    return json({
+      progress:allProgress.filter(allowed),
+      receipts:allReceipts.filter(allowed),
+      priorPayments:allPrior.filter(x=>menuIds.has(x.order_id))
+    });
+  }
+  return json({progress:allProgress,receipts:allReceipts,priorPayments:allPrior});
  }catch{return json({error:"A kiszállítási adatok nem érhetők el."},503)}
 }
 export async function POST(req:NextRequest){
