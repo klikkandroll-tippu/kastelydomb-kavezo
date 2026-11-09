@@ -63,11 +63,31 @@ export async function sessionAccount(req: NextRequest):Promise<SessionAccount|nu
   "&active=eq.true&select=id,username,full_name,role&limit=1");
  if(!u.ok)return null;
  const users:SessionAccount[]=await u.json();
- return users.length===1?users[0]:null;
+ if(users.length!==1)return null;
+ const perms=await db("kastelydomb_admin_role_permissions?role=eq."+encodeURIComponent(users[0].role)+
+  "&select=pages&limit=1");
+ if(!perms.ok)return null;
+ const rows:Array<{pages:string[]}>=await perms.json();
+ if(rows.length!==1)return null;
+ return {...users[0],pages:rows[0].pages};
 }
 export async function authorized(req: NextRequest){return !!(await sessionAccount(req))}
-function allowedForRole(role:SessionAccount["role"],pathname:string,method:string){
+function allowedForRole(account:SessionAccount,pathname:string,method:string){
+ const role=account.role;
  if(role==="superadmin")return true;
+ const requiredPage:Record<string,string>={
+  "/api/admin/orders":"menu",
+  "/api/admin/intake":"offers",
+  "/api/admin/delivery-status":"delivery",
+  "/api/admin/notes":"menu",
+  "/api/admin/confirm":"reservations",
+  "/api/admin/special-payment":"offers"
+ };
+ if(role!=="superadmin" && requiredPage[pathname] && !account.pages?.includes(requiredPage[pathname])){
+   // Read-only courier access to holiday deliveries uses the delivery permission.
+   if(!(role==="courier"&&pathname==="/api/admin/intake"&&account.pages?.includes("delivery")))
+     return false;
+ }
  if(pathname==="/api/admin/users")return false;
  if(pathname==="/api/admin/shell")return method==="GET";
  if(pathname==="/api/admin/notes")return role!=="courier";
@@ -95,7 +115,7 @@ export async function guard(req: NextRequest) {
     );
   const account=await sessionAccount(req);
   if(!account)return NextResponse.json({error:"Kérjük, lépjen be újra."},{status:401});
-  if(!allowedForRole(account.role,req.nextUrl.pathname,req.method))
+  if(!allowedForRole(account,req.nextUrl.pathname,req.method))
     return NextResponse.json({error:"Nincs jogosultsága ehhez a művelethez."},{status:403});
   return null;
 }
