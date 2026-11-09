@@ -52,24 +52,8 @@ export default function AdminPage(){
  }
 
  if(authenticated===null)return <p style={{padding:30}}>Adminfelület betöltése…</p>;
- if(authenticated)return <>
-   <iframe title="Kastélydomb admin V1.3 – integrációs teszt" allow="camera" src="/api/admin/shell"
-     style={{position:"fixed",inset:0,width:"100%",height:"100%",border:0,background:"#f5f7f5"}}/>
-   <aside aria-label="Bejelentkezett felhasználó és kijelentkezés"
-     style={{position:"fixed",bottom:12,left:12,zIndex:9999,maxWidth:240,minWidth:190,padding:12,
-       background:"#fff",border:"1px solid #c9dfd1",borderRadius:12,
-       boxShadow:"0 4px 20px rgba(10,40,22,.16)",fontFamily:"system-ui,Arial"}}>
-     <div style={{fontSize:12,color:"#567161",fontWeight:600}}>Bejelentkezve</div>
-     <div style={{fontSize:14,fontWeight:700,color:"#173a28",overflowWrap:"anywhere"}}>{account?.full_name||account?.username||"Admin"}</div>
-     <div style={{fontSize:12,color:"#567161"}}>{ROLE_LABELS[account?.role||""]||account?.role}</div>
-     <button type="button" onClick={()=>void logout()} disabled={loggingOut}
-       style={{marginTop:9,padding:"10px 14px",width:"100%",background:"#fff",color:"#20543a",
-         border:"1px solid #aac7b3",borderRadius:8,fontSize:14,fontWeight:700,cursor:"pointer"}}>
-       {loggingOut?"Kijelentkezés…":"Kijelentkezés"}
-     </button>
-     {error&&<p role="alert" style={{color:"#b42318",fontSize:12}}>{error}</p>}
-   </aside>
- </>;
+ if(authenticated)return <iframe title="Kastélydomb admin V1.3 – integrációs teszt" allow="camera" src="/api/admin/shell"
+     style={{position:"fixed",inset:0,width:"100%",height:"100%",border:0,background:"#f5f7f5"}} />;
  return <main style={{minHeight:"100vh",display:"grid",placeItems:"center",background:"#f5f7f5",fontFamily:"system-ui,Arial"}}>
   <section style={{padding:32,border:"1px solid #dce8df",background:"white",borderRadius:16,width:"min(420px,90vw)"}}>
   <h1 style={{marginTop:0,color:"#124731"}}>Kastélydomb admin</h1>
