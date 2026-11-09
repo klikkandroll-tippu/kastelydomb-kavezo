@@ -6,11 +6,11 @@ const pages = [
     "destination": "/kastelydomb-v2.html"
   },
   {
-    "source": "/napi-menu",
+    "source": "/napimenu",
     "destination": "/kastelydomb-napi-menu-v7.html"
   },
   {
-    "source": "/etlap-itallap",
+    "source": "/etlap",
     "destination": "/etlap-itallap.html"
   },
   {
@@ -29,11 +29,15 @@ const pages = [
 
 const nextConfig: NextConfig = {
   async redirects() {
-    return pages.map(({ source, destination }) => ({
+    return [
+      { source: "/napi-menu", destination: "/napimenu", permanent: true },
+      { source: "/etlap-itallap", destination: "/etlap", permanent: true },
+      ...pages.map(({ source, destination }) => ({
       source: destination,
       destination: source,
       permanent: true,
-    }));
+    })),
+    ];
   },
   async rewrites() {
     // Serve HTML before App Router pages so the public URL stays clean.
