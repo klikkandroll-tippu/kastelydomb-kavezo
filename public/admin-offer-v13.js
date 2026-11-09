@@ -76,10 +76,7 @@ openOffer=function(oid,id){
   r.items.map(i=>'<div class="dayrow"><span>'+esc(i.name)+' · '+i.qty+' adag</span>'+
     '<b>'+money(i.qty*i.price)+'</b></div>').join('')+
   '<div class="summary">Végösszeg: '+money(r.orderTotal)+'</div></div>'+
-  '<div class="section"><h3>4. Fizetés</h3>'+
-  '<div class="gridinfo">'+info('Fizetési mód',paymentLabel)+
-  info('Beszedendő összeg',r.paid?'0 Ft':money(r.orderTotal))+'</div>'+
-  paymentButton+'</div>'+
+  '<div class="section"><h3>4. Fizetés</h3>'+paymentButton+'</div>'+
   '<div class="section"><h3>5. Belső megjegyzések</h3>'+
   '<textarea id="internal-note" rows="3" style="width:100%;padding:10px;border:1px solid #ccdcd0;border-radius:8px" '+
   (ui.role==='courier'?'disabled':'')+'>'+esc(r.note)+'</textarea>'+
