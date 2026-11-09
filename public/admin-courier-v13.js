@@ -244,10 +244,19 @@ function kdCourierSettlement(day){
  }).join('');
  return '<div class="panel"><div class="panel-head"><h2>Napi futárelszámolás</h2>'+
   '<label class="field">Nap<input type="date" value="'+day+'" onchange="ui.deliveryDate=this.value;render()"></label></div>'+
-  '<div class="gridinfo">'+
-  info('Aznap beszedett összeg',money(totalCash+totalCard))+
-  info('Készpénzes fizetés',money(totalCash))+
-  info('Bankkártyás fizetés',money(totalCard))+
+  '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px;margin:20px 0">'+
+    '<div style="display:grid;grid-template-rows:1fr 1fr;gap:12px">'+
+      '<div style="background:#f7f9f7;border:1px solid #e1e9e2;border-radius:12px;padding:16px">'+
+        '<div style="font-size:13px;color:#63786b;font-weight:700">Készpénzes fizetés</div>'+
+        '<div style="font-size:23px;font-weight:800;margin-top:5px">'+money(totalCash)+'</div></div>'+
+      '<div style="background:#f7f9f7;border:1px solid #e1e9e2;border-radius:12px;padding:16px">'+
+        '<div style="font-size:13px;color:#63786b;font-weight:700">Bankkártyás fizetés</div>'+
+        '<div style="font-size:23px;font-weight:800;margin-top:5px">'+money(totalCard)+'</div></div>'+
+    '</div>'+
+    '<div style="background:#e7f2e9;border:2px solid #2d694a;border-radius:14px;padding:24px;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center">'+
+      '<div style="font-size:15px;font-weight:800;color:#24543a">Aznap beszedett összesen</div>'+
+      '<div style="font-size:clamp(32px,4vw,50px);font-weight:850;line-height:1.2;margin-top:10px;color:#164c32;white-space:nowrap">'+money(totalCash+totalCard)+'</div>'+
+    '</div>'+
   '</div><p class="hint">Az aznap ténylegesen beérkezett készpénzes és bankkártyás teljes rendelés-befizetések összege.</p>'+
   '<h3>Aznap rögzített befizetések</h3>'+
   th(['Megrendelő','Fizetési mód','Összeg','Időpont'])+
