@@ -85,7 +85,10 @@ function allowedForRole(account:SessionAccount,pathname:string,method:string){
  };
  if(role!=="superadmin" && requiredPage[pathname] && !account.pages?.includes(requiredPage[pathname])){
    // Read-only courier access to holiday deliveries uses the delivery permission.
-   if(!(role==="courier"&&pathname==="/api/admin/intake"&&account.pages?.includes("delivery")))
+   if(!(pathname==="/api/admin/intake" && method==="GET" &&
+         (account.pages||[]).some(p=>["offers","reservations","messages","delivery"].includes(p))) &&
+      !(pathname==="/api/admin/orders" && method==="GET" &&
+         account.pages?.includes("delivery")))
      return false;
  }
  if(pathname==="/api/admin/users")return false;
