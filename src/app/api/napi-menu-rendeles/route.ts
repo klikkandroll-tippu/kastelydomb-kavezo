@@ -27,7 +27,7 @@ const current=()=>{const p=new Intl.DateTimeFormat("en-CA",{timeZone:"Europe/Bud
 const ft=(n:number)=>new Intl.NumberFormat("hu-HU").format(n)+" Ft";
 export async function POST(req:NextRequest){
   const origin=req.headers.get("origin");if(origin && origin!==req.nextUrl.origin)return bad("Nem engedélyezett kérés.",403);
-  if(process.env.VERCEL_ENV!=="preview" || process.env.KASTELYDOMB_MODE==="production")return bad("A megrendelés ezen a címen nem elérhető.",503);
+  if(process.env.VERCEL_ENV!=="preview" && process.env.ORDER_INTAKE_ENABLED!=="true")return bad("A megrendelés ezen a címen nem elérhető.",503);
   const hook=process.env.MENU_ZAPIER_WEBHOOK_URL;
   if(process.env.MENU_ZAPIER_ENABLED!=="true" || !hook?.startsWith("https://hooks.zapier.com/hooks/catch/"))return bad("A menürendelés értesítése még nincs beállítva.",503);
   let d:any;try{const raw=await req.text();if(Buffer.byteLength(raw,"utf8")>16000)return bad("Túl nagy rendelés.",413);d=JSON.parse(raw)}catch{return bad("Érvénytelen rendelési adatok.")}
@@ -67,7 +67,7 @@ export async function POST(req:NextRequest){
   const id=typeof d.request_id==="string" && /^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/i.test(d.request_id)?d.request_id:randomUUID(),orderNumber="MENU-"+now.date.slice(2).replace(/-/g,"")+"-"+id.slice(0,8).toUpperCase();
   const fulfillmentHu=d.fulfillment==="delivery"?"Kiszállítás":d.fulfillment==="takeaway"?"Elvitel":"Helyben fogyasztás";
   const paymentHu=d.payment==="transfer"?"Céges banki átutalás":d.payment==="cod-card"?"Bankkártya az átvételkor":"Készpénz az átvételkor";
-  const recipients=emailRecipients(email,true);
+  const recipients=emailRecipients(email, process.env.VERCEL_ENV === "preview" || process.env.KASTELYDOMB_MODE !== "production");
   const qrValue="KASTELYDOMB:MENU:"+id,qrUrl="https://api.qrserver.com/v1/create-qr-code/?size=520x520&margin=16&data="+encodeURIComponent(qrValue);
   // Keep one visually distinct block per day, with soup first and selected mains after it.
   // Render both guest and restaurant notifications from this identical grouped markup.
@@ -80,7 +80,7 @@ export async function POST(req:NextRequest){
   }).join("");
   const base="<div style='background:#f5f1e9;padding:24px 10px;font-family:Arial,sans-serif;color:#403328'><div style='max-width:620px;margin:auto;background:#fff'><div style='background:#403328;color:white;padding:28px;text-align:center;font-size:22px;font-weight:bold'>Kastélydomb Kávézó és Étterem</div><div style='padding:24px'><h2>Rendelési igényét megkaptuk</h2><p>Kedves "+esc(name)+"! Köszönjük a megrendelését. Az étterem külön visszaigazolja az elfogadását.</p><p><strong>Rendelésazonosító:</strong> "+esc(orderNumber)+"</p><p><strong>Átvétel:</strong> "+esc(fulfillmentHu)+(address?"<br><strong>Cím:</strong> "+esc(address):"")+"<br><strong>Fizetés:</strong> "+esc(paymentHu)+"</p><div style='width:100%;font-size:14px'>"+rows+"</div><p style='font-size:21px;text-align:right'><strong>Összesen: "+ft(total)+"</strong></p><div style='background:#faf7f0;text-align:center;padding:16px'><strong>Rendelés QR-kódja</strong><img src='"+esc(qrUrl)+"' alt='Rendelés QR-kódja' width='480' style='width:100%;max-width:480px;height:auto;display:block;margin:12px auto'><p>"+esc(orderNumber)+"</p></div><p>Ha módosítani vagy lemondani szeretné megrendelését, kérjük, hívjon minket a <a href='tel:+3688470350' style='color:#493329;font-weight:bold'>06 88 470 350</a> telefonszámon.</p><p style='font-size:12px'>Ez az üzenet a rendelési igény beérkezését igazolja, nem annak végleges elfogadását.</p></div></div></div>";
   const restaurantHtml=base.replace("Rendelési igényét megkaptuk","Új napi menürendelés").replace("<p>Kedves "+esc(name)+"! Köszönjük a megrendelését. Az étterem külön visszaigazolja az elfogadását.</p>","<p><strong>Megrendelő:</strong> "+esc(name)+"<br><strong>Telefon:</strong> "+esc(phone)+"<br><strong>E-mail:</strong> "+esc(email)+(isCompany?"<br><strong>Cég:</strong> "+esc(companyName)+"<br><strong>Székhely:</strong> "+esc(companyAddress)+"<br><strong>Adószám:</strong> "+esc(tax):"")+"</p>");
-  const payload={event:"menu.order.created",is_test:true,...recipients,order_id:id,order_number:orderNumber,customer_name:name,customer_phone:phone,customer_email:recipients.guest_email,customer_type:isCompany?"company":"private",company_name:isCompany?companyName:"",company_address:isCompany?companyAddress:"",tax_number:isCompany?tax:"",fulfillment:d.fulfillment,fulfillment_hu:fulfillmentHu,delivery_address:address,payment_method:d.payment,payment_method_hu:paymentHu,items,total_huf:total,total_hu:ft(total),qr_value:qrValue,qr_url:qrUrl,guest_html:base,restaurant_html:restaurantHtml,order_html:base,subject_guest:"Kastélydomb – menürendelése beérkezett – "+orderNumber,subject_restaurant:"Kastélydomb – új menürendelés – "+orderNumber};
+  const payload={event:"menu.order.created",is_test: process.env.VERCEL_ENV === "preview" || process.env.KASTELYDOMB_MODE !== "production",...recipients,order_id:id,order_number:orderNumber,customer_name:name,customer_phone:phone,customer_email:recipients.guest_email,customer_type:isCompany?"company":"private",company_name:isCompany?companyName:"",company_address:isCompany?companyAddress:"",tax_number:isCompany?tax:"",fulfillment:d.fulfillment,fulfillment_hu:fulfillmentHu,delivery_address:address,payment_method:d.payment,payment_method_hu:paymentHu,items,total_huf:total,total_hu:ft(total),qr_value:qrValue,qr_url:qrUrl,guest_html:base,restaurant_html:restaurantHtml,order_html:base,subject_guest:"Kastélydomb – menürendelése beérkezett – "+orderNumber,subject_restaurant:"Kastélydomb – új menürendelés – "+orderNumber};
   try {
     await persistAdminRow("kastelydomb_orders", {
       id, order_number: orderNumber, request_fingerprint: id,
@@ -93,7 +93,7 @@ export async function POST(req:NextRequest){
       delivery_address: address || null,
       payment_method: d.payment === "transfer" ? "company_transfer" : d.payment === "cod-card" ? "card_on_pickup" : "cash_on_pickup",
       payment_status: "unpaid", status: "new", total_huf: total,
-      items, notes: clean(d.note, 2000) || null, is_test: true,
+      items, notes: clean(d.note, 2000) || null, is_test: process.env.VERCEL_ENV === "preview" || process.env.KASTELYDOMB_MODE !== "production",
     });
   } catch { return bad("A rendelés adatbázisba mentése nem sikerült.",503); }
   try{await sendZapierOnce("menu",id,hook,payload)}
