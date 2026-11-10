@@ -97,13 +97,18 @@ function switchWeek(i){activeWeek=i;selected=WEEK_SELECTIONS[i];draw()}
 const radio=n=>document.querySelector(`input[name="${n}"]:checked`)?.value||"";
 const dishCount=s=>s.A+s.B+s.C;
 function counter(i,k,n){return `<div class="qty" role="group" aria-label="${esc(activeWeekData().days[i].label)} ${k==='soup'?'leves':k+' mennyisége'}"><button type="button" data-op="minus" data-i="${i}" data-k="${k}" aria-label="Csökkentés">−</button><input type="number" inputmode="numeric" min="0" max="5" step="1" value="${n}" data-i="${i}" data-k="${k}" aria-label="Adagszám"><button type="button" data-op="plus" data-i="${i}" data-k="${k}" aria-label="Növelés">+</button></div>`}
-let initialWeekDraw=true;
-function draw(){if(initialWeekDraw){initialWeekDraw=false;const nowDate=budapestNow().date;const upcoming=WEEKS.findIndex(w=>w.days[0]?.date>nowDate);const firstOrderable=upcoming>=0?upcoming:WEEKS.findIndex(w=>w.days.some(d=>d.date>=nowDate));if(firstOrderable>=0){activeWeek=firstOrderable;selected=WEEK_SELECTIONS[activeWeek];}}const removed=pruneExpiredSelections();let week=activeWeekData(),plan=radio('plan'),ful=radio('fulfillment');const currentVisible=true;const nextVisible=true;
-const visibleWeeks=WEEKS.map((w,i)=>({w,i})).filter(({i})=>(i===0?currentVisible:nextVisible));
-if(!visibleWeeks.some(({i})=>i===activeWeek)){activeWeek=visibleWeeks[0]?.i??0;selected=WEEK_SELECTIONS[activeWeek];week=activeWeekData();}
+let catalogLoaded=false;
+function draw(){
+if(!catalogLoaded)return;
+const now=budapestNow();
+const visibleWeeks=WEEKS.map((w,i)=>({w,i})).filter(({w})=>now.date<w.archiveOn || (now.date===w.archiveOn && now.minutes<900));
+if(!visibleWeeks.some(({i})=>i===activeWeek)){activeWeek=visibleWeeks[0]?.i??-1;selected=WEEK_SELECTIONS[activeWeek]??[];}
+const week=activeWeekData(),plan=radio('plan'),ful=radio('fulfillment');
 const formatPeriod=p=>{const m=p.match(/(\d{4})\.\s*([a-záéíóöőúüű]+)\s+(\d+)[–-](\d+)/i);return m?m[2].charAt(0).toLocaleUpperCase('hu-HU')+m[2].slice(1)+' '+m[3]+'–'+m[4]+'.':p};
 $('weekTabs').innerHTML=Array.from({length:5},(_,pos)=>{const entry=visibleWeeks[pos];return entry?`<button type="button" class="week-slot ${entry.i===activeWeek?'is-active':'is-inactive'}" role="tab" data-week="${entry.i}" aria-selected="${entry.i===activeWeek}" title="${esc(entry.w.period)}">${esc(formatPeriod(entry.w.period))}</button>`:`<span class="week-slot is-empty" aria-hidden="true"></span>`}).join('');
 
+if(!week){$('weekRows').textContent='Jelenleg nincs meghirdetett heti menü.';update();return;}
+const removed=pruneExpiredSelections();
 $('weekRows').innerHTML=week.days.map((d,i)=>{let ss=selected[i],items=[['soup','Leves',d.soup],['A','A menü',d.A],['B','B menü',d.B],['C','C menü',d.C]].filter(([k,label,v])=>plan==='yes'||d.holiday||k==='soup'||k==='C');const any=['A','B','C'].some(k=>orderAllowed(d,k,plan,ful));return `<article class="day-card ${dishCount(ss)?'':'is-empty'}" data-day="${i}" data-locked="${!any}"><div class="day-meta-banner"><div><strong>${esc(d.label)}</strong><small>${esc(d.date)}</small></div></div>${d.holiday?'<p class="day-lock-note">Ünnepnap – csak az adott napra meghirdetett menü rendelhető.</p>':''}${!any?'<p class="day-lock-note">'+(!ful?'A menük kiválasztásához először válasszon átvételi módot.':'A rendelési határidő lejárt vagy nincs elérhető menü.')+'</p>':''}${items.map(([k,label,v])=>{const allowed=orderAllowed(d,k,plan,ful);return `<div class="food-cell ${ss[k]?'selected':''}"><div class="food-label">${label}</div><div class="food-copy">${v===null?'Ezen a napon nem elérhető':esc(v)}</div>${allowed?`<div class="qty-line">${counter(i,k,ss[k])}<span class="unit-label">adag</span></div>`:'<small>Nem rendelhető</small>'}</div>`}).join('')}<div class="day-price" id="dayPrice${i}"><span>Napi összeg</span><strong>0 Ft</strong></div></article>`}).join('');update();showExpiredNotice(removed)}
 let computed=[];
 function priceDay(s,plan,d){const n=dishCount(s);if(!n)return {price:0,unknown:s.soup>0,explain:s.soup?'Csak leves nem rendelhető!':null,needsMain:s.soup>0};if(s.soup>n)return {price:0,unknown:true,explain:'Több leves, mint főétel'};if(plan==='no'&&d?.holiday&&(s.A||s.B)){return {price:(s.A+s.B)*1700+s.C*2800+Math.max(0,s.soup-s.C)*200,unknown:s.soup<s.C,explain:s.soup<s.C?'C menühöz kötelező a leves':null}}if(plan==='no'){if(s.A||s.B||s.soup!==s.C)return {price:0,unknown:true,explain:'Csak C menü rendelhető levessel'};return {price:s.C*2800,unknown:false}}if(s.soup<s.C)return {price:0,unknown:true,explain:'C menühöz kötelező a leves'};return {price:(s.A+s.B)*1700+s.C*2300+(s.soup-s.C)*200,unknown:false}}
@@ -165,7 +170,7 @@ async function loadOrderableWeeks(){
     const response=await fetch('/api/napi-menu-rendeles',{method:'GET',cache:'no-store'});
     if(!response.ok)throw new Error('A heti menü lekérése sikertelen.');
     const data=await response.json();
-    if(!Array.isArray(data.days)||!data.days.length)throw new Error('A heti menü még nincs feltöltve.');
+    if(!Array.isArray(data.days))throw new Error('A heti menü még nincs feltöltve.');
     const grouped=new Map();
     for(const row of data.days){
       if(!row||!/^\d{4}-\d{2}-\d{2}$/.test(row.date)||['soup','A','B','C'].some(key=>typeof row[key]!=='string'))throw new Error('Hibás heti menüadat.');
@@ -176,17 +181,18 @@ async function loadOrderableWeeks(){
       const key=dateMonday.toISOString().slice(0,10);
       if(!grouped.has(key))grouped.set(key,[]);
       const label=['Hétfő','Kedd','Szerda','Csütörtök','Péntek','Szombat','Vasárnap'][weekday];
-      grouped.get(key).push({label,date:row.date,soup:row.soup,A:row.A,B:row.B,C:row.C});
+      grouped.get(key).push({label,date:row.date,archiveOn:row.archiveOn,soup:row.soup,A:row.A,B:row.B,C:row.C});
     }
     WEEKS=[...grouped].sort((a,b)=>a[0].localeCompare(b[0])).map(([,days])=>{
       days.sort((a,b)=>a.date.localeCompare(b.date));
       const start=new Date(days[0].date+'T12:00:00Z');
       const month=new Intl.DateTimeFormat('hu-HU',{month:'long',timeZone:'UTC'}).format(start);
       const startDay=Number(days[0].date.slice(8)),endDay=Number(days[days.length-1].date.slice(8));
-      return {period:start.getUTCFullYear()+'. '+month+' '+startDay+'–'+endDay+'.',days};
+      return {period:start.getUTCFullYear()+'. '+month+' '+startDay+'–'+endDay+'.',archiveOn:days[0].archiveOn,days};
     });
     WEEK_SELECTIONS=WEEKS.map(w=>w.days.map(()=>({soup:0,A:0,B:0,C:0})));
-    activeWeek=0;selected=WEEK_SELECTIONS[0];
+    activeWeek=0;selected=WEEK_SELECTIONS[0]??[];
+    catalogLoaded=true;
     draw();
   }catch(error){
     const rows=document.getElementById('weekRows');

@@ -14,11 +14,25 @@ const dishes=[
 ["2026-11-10","Reszelt tésztaleves","Rakott burgonya","Eszterházi tokány, orsótészta","Csáki töltött borda, párolt rizs"],
 ["2026-11-11","Húsleves eperlevéllel","Székelykáposzta","Zöldborsófőzelék, feltét","Parajos penne grillezett csirkefalatokkal"],
 ["2026-11-12","Magyaros burgonyaleves","Rántott szelet, kukoricás rizs","Sertéssült, gyümölcsmártás, pirított dara","Zöldséges töltött borda, petrezselymes rizs"],
-["2026-11-13","Lencsegulyás","Túrós tészta","Aranygaluska vaníliaöntettel","Sertésszelet parasztosan, tört burgonya"]
+["2026-11-13","Lencsegulyás","Túrós tészta","Aranygaluska vaníliaöntettel","Sertésszelet parasztosan, tört burgonya"],
+["2026-11-16","Karfiol leves","Pásztor tarhonya","Mustáros sertésragu, Párolt rizs","Csirkemájjal töltött borda, Párolt rizs"],
+["2026-11-17","Gyöngybab leves","Édes-savanyú csirkecsíkok, Párolt rizs","Sertéspaprikás galuskával","Cigánypecsenye, Tepsis burgonya"],
+["2026-11-18","Csontleves májgaluskával","Zöldbabfőzelék, feltét","Paradicsomos húsgombóc, Tört burgonya","Holstein szelet, Petrezselymes rizs"],
+["2026-11-19","Gomba leves","Sertéssült, Burgonya, Párolt káposzta","Búboshús, Párolt rizs","Csülök Pékné módra"],
+["2026-11-20","Csirke becsinált leves","Almás-fahéjas gombóc","Sajtos-tejfölös tészta","Lyoni szelet, Párolt rizs"],
 ];
 // Single menu catalog for both order validation and the public weekly menu.
 export async function GET(){
-  return NextResponse.json({days:dishes.map(row=>({date:row[0],soup:row[1],A:row[2],B:row[3],C:row[4]}))},{headers:{"Cache-Control":"no-store"}});
+  const now=current();
+  const days=dishes.map(([date,soup,A,B,C])=>({date,soup,A,B,C,archiveOn:archiveFriday(date)}))
+    .filter(({archiveOn})=>now.date<archiveOn || (now.date===archiveOn && now.minutes<900));
+  return NextResponse.json({days},{headers:{"Cache-Control":"no-store"}});
+}
+function archiveFriday(date:string){
+  const friday=new Date(date+"T12:00:00Z");
+  const weekday=(friday.getUTCDay()+6)%7;
+  friday.setUTCDate(friday.getUTCDate()+4-weekday);
+  return friday.toISOString().slice(0,10);
 }
 const clean=(x:unknown,max=500)=>typeof x==="string"?x.trim().slice(0,max):"";
 const esc=(x:unknown)=>String(x??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]!));
