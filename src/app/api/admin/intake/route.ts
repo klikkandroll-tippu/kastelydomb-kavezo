@@ -1,0 +1,66 @@
+import { NextRequest } from "next/server";
+import { guard, db, json, sessionAccount } from "@/lib/admin-server";
+
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
+// Read-only integration endpoint. Any future mutations require separate permission checks.
+// The shared admin password is temporary; role-specific accounts are a separate release gate.
+const sources = {
+  contacts: "kastelydomb_contacts?select=id,request_id,form_number,confirmed_at,customer_name,customer_email,customer_phone,message,status,internal_notes,is_test,created_at,updated_at",
+  reservations: "kastelydomb_reservations?select=id,request_id,form_number,customer_name,customer_email,customer_phone,reservation_date,reservation_time,guest_count,guest_notes,status,confirmed_at,confirmed_by,internal_notes,is_test,created_at,updated_at",
+  christmas: "kastelydomb_christmas_orders?select=id,order_number,confirmed_at,customer_name,customer_email,customer_phone,fulfillment,delivery_address,payment_method,items,total_huf,status,is_test,created_at",
+} as const;
+
+async function getRows(path: string) {
+  const results: unknown[] = [];
+  for (let offset = 0; offset < 10000; offset += 500) {
+    const separator = path.includes("?") ? "&" : "?";
+    const sort = path.startsWith("kastelydomb_special_payments") ? "paid_at" : "created_at";
+    const response = await db(path + separator + "order=" + sort + ".desc&limit=500&offset=" + offset);
+    if (!response.ok) throw Error("Database query failed");
+    const batch: unknown = await response.json();
+    if (!Array.isArray(batch)) throw Error("Invalid database response");
+    results.push(...batch);
+    if (batch.length < 500) return results;
+  }
+  throw Error("Archive limit exceeded; date-scoped pagination is required");
+}
+
+export async function GET(req: NextRequest) {
+  try {
+    const denied = await guard(req);
+    if (denied) return denied;
+    const account=await sessionAccount(req);
+    const courier=account?.role==="courier";
+    const kind = req.nextUrl.searchParams.get("kind");
+    if(courier&&kind&&kind!=="christmas")return json({error:"Ehhez az adattípushoz nincs futárjogosultság."},403);
+    if (kind && !(kind in sources)) return json({ error: "Ismeretlen adattípus." }, 400);
+    const enabled=new Set(account?.role==="superadmin"?["contacts","reservations","christmas"]:[
+      ...(account?.pages?.includes("messages")?["contacts"]:[]),
+      ...(account?.pages?.includes("reservations")?["reservations"]:[]),
+      ...(account?.pages?.includes("offers")||account?.pages?.includes("delivery")?["christmas"]:[])
+    ]);
+    if(kind&&!enabled.has(kind))return json({error:"Ehhez az adattípushoz nincs jogosultsága."},403);
+    const keys: Array<keyof typeof sources>=kind?[kind as keyof typeof sources]:
+      (Object.keys(sources) as Array<keyof typeof sources>).filter(x=>enabled.has(x));
+    const out: Record<string, unknown[]> = {};
+    const failed: string[] = [];
+    for (const key of keys) {
+      try { const rows=await getRows(sources[key]);out[key]=courier&&key==="christmas"?rows.filter((r:unknown)=>Boolean(r)&&typeof r==="object"&&(r as {fulfillment?:string}).fulfillment==="delivery"):rows; }
+      catch { failed.push(key); }
+    }
+    // Payment receipts are read separately from order records to avoid conflating
+    // payment status with manual confirmation. Omit on filtered, non-Christmas calls.
+    if (enabled.has("christmas") && (!kind || kind === "christmas")) {
+      try {
+        const receipts=await getRows("kastelydomb_special_payments?select=order_id,amount_huf,method,paid_at,is_test");
+        const orderIds=new Set((out.christmas||[]).map((o:unknown)=>String((o as {id?:string}).id)));
+        out.specialPayments=courier?receipts.filter((r:unknown)=>orderIds.has(String((r as {order_id?:string}).order_id))):receipts;
+      } catch { failed.push("specialPayments"); }
+    }
+    return json({ ...out, errors: failed, partial: failed.length > 0 }, failed.length >= keys.length + ((!kind || kind === "christmas") ? 1 : 0) ? 503 : 200);
+  } catch {
+    return json({ error: "Az admin nyilvántartás jelenleg nem tölthető be." }, 503);
+  }
+}

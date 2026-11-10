@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { emailRecipients } from "@/lib/email-routing";
+import { persistAdminRow, sendZapierOnce } from "@/lib/admin-persistence";
+import { issueFormNumber } from "@/lib/form-identifiers";
 
 export const runtime = "nodejs";
 const esc = (v: unknown) => String(v ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]!));
@@ -85,15 +87,34 @@ export async function POST(req: NextRequest) {
   }
   const isTest = isTestMode();
   const recipients = emailRecipients(email, isTest);
-  const requestId = crypto.randomUUID();
-  rows.unshift(["Igényazonosító",requestId]);
+  const requestId = typeof raw.request_id==="string" && /^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/i.test(raw.request_id)?raw.request_id:crypto.randomUUID();
+  let formNumber=requestId;
+  try{formNumber=(await issueFormNumber(requestId,type==="contact"?"KF":"AF"))||requestId}
+  catch{return NextResponse.json({error:"Az igény azonosítójának létrehozása sikertelen."},{status:503})}
+  rows.unshift(["Igényazonosító",formNumber]);
   if(!isTest && process.env.INQUIRY_LIVE_EMAILS_ENABLED !== "true")return NextResponse.json({error:"Az éles értesítések még nincsenek engedélyezve."},{status:503});
-  const payload={ request_id:requestId, event: type==="contact"?"contact.created":"reservation.requested",is_test:isTest,...recipients,customer_name:name,guest_email_original:recipients.original_guest_email_suppressed?undefined:email,subject_restaurant:subject,subject_guest:subject.replace("új ","")+" – beérkezett",restaurant_html:html(heading,restaurantIntro,rows,"A vendégnek szóló igényt az étterem munkatársa kezelje."),guest_html:html(heading,guestIntro,rows,guestFooter)};
+  const payload={ request_id:requestId, form_number:formNumber, event: type==="contact"?"contact.created":"reservation.requested",is_test:isTest,...recipients,customer_name:name,guest_email_original:recipients.original_guest_email_suppressed?undefined:email,subject_restaurant:subject,subject_guest:subject.replace("új ","")+" – beérkezett",restaurant_html:html(heading,restaurantIntro,rows,"A vendégnek szóló igényt az étterem munkatársa kezelje."),guest_html:html(heading,guestIntro,rows,guestFooter)};
   try {
-    const response=await fetch(hook,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload),signal:AbortSignal.timeout(8000)});
-    if(!response.ok)throw Error("Webhook HTTP "+response.status);
-  }catch{
-    return NextResponse.json({error:"Az üzenetet nem sikerült továbbítani. Kérjük, próbálja újra vagy hívja az éttermet."},{status:502});
+    if (type === "contact") {
+      await persistAdminRow("kastelydomb_contacts", {
+        request_id: requestId, form_number:formNumber, customer_name: name, customer_email: email,
+        customer_phone: phone, message: get("message", 2500), status: "new", is_test: isTest,
+      });
+    } else {
+      await persistAdminRow("kastelydomb_reservations", {
+        request_id: requestId, form_number:formNumber, customer_name: name, customer_email: email,
+        customer_phone: phone, reservation_date: get("date", 10),
+        reservation_time: get("time", 5), guest_count: Number(get("guests", 3)),
+        guest_notes: get("note", 1200), status: "pending", is_test: isTest,
+      });
+    }
+  } catch {
+    return NextResponse.json({error:"Az igény adatbázisba mentése nem sikerült. Kérjük, próbálja újra."},{status:503});
   }
-  return NextResponse.json({ok:true,is_test:isTest,request_id:requestId});
+  try {
+    await sendZapierOnce(type,requestId,hook,payload,8000);
+  }catch{
+    return NextResponse.json({error:"Az értesítés állapota ellenőrzést igényel. Kérjük, hívja az éttermet."},{status:502});
+  }
+  return NextResponse.json({ok:true,is_test:isTest,request_id:requestId,form_number:formNumber});
 }
