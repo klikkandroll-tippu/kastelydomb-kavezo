@@ -27,6 +27,8 @@ const pages = [
   }
 ];
 
+const sectionPaths = ["/szolgaltatasok", "/kapcsolat", "/rolunk"];
+
 const nextConfig: NextConfig = {
   async redirects() {
     return [
@@ -41,7 +43,12 @@ const nextConfig: NextConfig = {
   },
   async rewrites() {
     // Serve HTML before App Router pages so the public URL stays clean.
-    return { beforeFiles: pages };
+    return {
+      beforeFiles: [
+        ...pages,
+        ...sectionPaths.map((source) => ({ source, destination: "/kastelydomb-v2.html" })),
+      ],
+    };
   },
 };
 
