@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createHash, timingSafeEqual } from "node:crypto";
+import type { SessionAccount } from "@/lib/admin-users";
 export const COOKIE = "kd_admin_session";
 export const hash = (value: string) =>
   createHash("sha256").update(value).digest("hex");
@@ -48,17 +49,56 @@ export async function db(path: string, options: RequestInit = {}) {
     },
   );
 }
-export async function authorized(req: NextRequest) {
-  const token = req.cookies.get(COOKIE)?.value;
-  if (!token || !/^[a-f0-9]{64}$/.test(token)) return false;
-  const r = await db(
-    "kastelydomb_admin_sessions?token_hash=eq." +
-      hash(token) +
-      "&expires_at=gt." +
-      encodeURIComponent(new Date().toISOString()) +
-      "&select=token_hash&limit=1",
-  );
-  return r.ok && (await r.json()).length === 1;
+export async function sessionAccount(req: NextRequest):Promise<SessionAccount|null>{
+ const token=req.cookies.get(COOKIE)?.value;
+ if(!token||!/^[a-f0-9]{64}$/.test(token))return null;
+ const r=await db("kastelydomb_admin_sessions?token_hash=eq."+hash(token)+
+  "&expires_at=gt."+encodeURIComponent(new Date().toISOString())+
+  "&select=user_id&limit=1");
+ if(!r.ok)return null;
+ const sessions: Array<{user_id:string|null}>=await r.json();
+ if(sessions.length!==1)return null;
+ if(!sessions[0].user_id)return {id:null,role:"superadmin",username:"szuperadmin",full_name:"Szuperadmin"};
+ const u=await db("kastelydomb_admin_users?id=eq."+encodeURIComponent(sessions[0].user_id)+
+  "&active=eq.true&select=id,username,full_name,role&limit=1");
+ if(!u.ok)return null;
+ const users:SessionAccount[]=await u.json();
+ if(users.length!==1)return null;
+ const perms=await db("kastelydomb_admin_role_permissions?role=eq."+encodeURIComponent(users[0].role)+
+  "&select=pages&limit=1");
+ if(!perms.ok)return null;
+ const rows:Array<{pages:string[]}>=await perms.json();
+ if(rows.length!==1)return null;
+ return {...users[0],pages:rows[0].pages};
+}
+export async function authorized(req: NextRequest){return !!(await sessionAccount(req))}
+function allowedForRole(account:SessionAccount,pathname:string,method:string){
+ const role=account.role;
+ if(role==="superadmin")return true;
+ const requiredPage:Record<string,string>={
+  "/api/admin/orders":"menu",
+  "/api/admin/intake":"offers",
+  "/api/admin/delivery-status":"delivery",
+  "/api/admin/notes":"menu",
+  "/api/admin/confirm":"reservations",
+  "/api/admin/special-payment":"offers"
+ };
+ if(requiredPage[pathname] && !account.pages?.includes(requiredPage[pathname])){
+   // Read-only courier access to holiday deliveries uses the delivery permission.
+   if(!(pathname==="/api/admin/intake" && method==="GET" &&
+         (account.pages||[]).some(p=>["offers","reservations","messages","delivery"].includes(p))) &&
+      !(pathname==="/api/admin/orders" && method==="GET" &&
+         account.pages?.includes("delivery")))
+     return false;
+ }
+ if(pathname==="/api/admin/users")return false;
+ if(pathname==="/api/admin/shell")return method==="GET";
+ if(pathname==="/api/admin/notes")return role!=="courier";
+ if(pathname==="/api/admin/confirm")return role!=="courier";
+ if(pathname==="/api/admin/special-payment")return role!=="courier";
+ if(pathname==="/api/admin/delivery-status")return true;
+ if(pathname==="/api/admin/orders" || pathname==="/api/admin/intake")return method==="GET";
+ return false;
 }
 export function sameOrigin(req: NextRequest) {
   const origin = req.headers.get("origin");
@@ -76,11 +116,10 @@ export async function guard(req: NextRequest) {
       { error: "Nem engedélyezett kérésforrás." },
       { status: 403 },
     );
-  if (!(await authorized(req)))
-    return NextResponse.json(
-      { error: "Kérjük, lépjen be újra." },
-      { status: 401 },
-    );
+  const account=await sessionAccount(req);
+  if(!account)return NextResponse.json({error:"Kérjük, lépjen be újra."},{status:401});
+  if(!allowedForRole(account,req.nextUrl.pathname,req.method))
+    return NextResponse.json({error:"Nincs jogosultsága ehhez a művelethez."},{status:403});
   return null;
 }
 export async function body(req: NextRequest, max = 32000) {
