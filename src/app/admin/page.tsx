@@ -46,7 +46,7 @@ export default function AdminPage(){
      <input id="kd-username" type="text" autoComplete="username" value={username} onChange={e=>setUsername(e.target.value)} style={{display:"block",width:"100%",boxSizing:"border-box",padding:"13px 12px",margin:"8px 0 20px",border:"1px solid #c9d8cd",borderRadius:9,fontSize:16,background:"#fff"}}/>
      <label htmlFor="kd-password" style={{display:"block",fontWeight:600,fontSize:14}}>Jelszó</label>
      <input id="kd-password" type="password" autoComplete="current-password" value={password} onChange={e=>setPassword(e.target.value)} style={{display:"block",width:"100%",boxSizing:"border-box",padding:"13px 12px",margin:"8px 0 24px",border:"1px solid #c9d8cd",borderRadius:9,fontSize:16,background:"#fff"}}/>
-     <button type="submit" disabled={busy||!password} style={{width:"100%",padding:"13px 16px",background:"#206441",color:"#fff",border:0,borderRadius:9,fontSize:15,fontWeight:700,cursor:"pointer",opacity:busy||!password?.7:1}}>{busy?"Belépés…":"Belépés"}</button>
+     <button type="submit" disabled={busy||!password} style={{width:"100%",padding:"13px 16px",background:"#206441",color:"#fff",border:0,borderRadius:9,fontSize:15,fontWeight:700,cursor:"pointer",opacity:(busy||!password)?0.7:1}}>{busy?"Belépés…":"Belépés"}</button>
      {error&&<p role="alert" style={{color:"#b42318",fontSize:13,margin:"18px 0 0"}}>{error}</p>}
    </form>
  </main>;
