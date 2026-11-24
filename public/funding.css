@@ -1,8 +1,16 @@
+body {
+  --funding-gap: clamp(8px, 2vw, 16px);
+  --funding-rrf-width: clamp(170px, 63vw, 390px);
+  --funding-2020-target: clamp(168.75px, 50.625vw, 330px);
+  --funding-intro-space: calc(var(--funding-rrf-width) + var(--funding-gap) + env(safe-area-inset-right, 0px));
+  --funding-2020-width: min(var(--funding-2020-target), calc(100vw - var(--funding-intro-space)));
+}
+
 .funding-intro,
 .funding-footer {
   display: flex;
   align-items: center;
-  gap: clamp(8px, 2vw, 16px);
+  gap: var(--funding-gap);
 }
 
 .funding-intro {
@@ -36,7 +44,7 @@
 }
 
 .funding-link-rrf {
-  width: clamp(170px, 63vw, 390px);
+  width: var(--funding-rrf-width);
 }
 
 .funding-link-rrf img {
@@ -46,7 +54,7 @@
 
 .funding-intro .funding-link-2020 {
   min-width: 0;
-  width: clamp(140.625px, 42.1875vw, 275px);
+  width: var(--funding-2020-width);
 }
 
 .funding-intro .funding-link-2020:focus-visible {
@@ -60,8 +68,7 @@
 
 footer:has(> .funding-footer) {
   position: relative;
-  --funding-footer-corner-width: clamp(118.75px, 35.9375vw, 218.75px);
-  --funding-footer-corner-height: calc(var(--funding-footer-corner-width) * 469 / 670);
+  --funding-footer-corner-height: calc(var(--funding-2020-width) * 469 / 670);
 }
 
 .funding-footer {
@@ -75,7 +82,8 @@ footer:has(> .funding-footer) {
   position: absolute;
   right: 0;
   bottom: 0;
-  width: var(--funding-footer-corner-width);
+  width: var(--funding-2020-width);
+  max-width: calc(100% - var(--funding-intro-space));
 }
 
 .funding-footer .funding-link-2020:focus-visible {
@@ -99,18 +107,18 @@ footer:has(> .funding-footer) {
 }
 
 @media (max-width: 350px) and (max-height: 600px) {
-  .funding-intro .funding-link-2020 {
-    max-width: 104px;
+  body {
+    --funding-2020-target: 104px;
   }
 }
 
 @media (min-width: 850px) and (max-height: 600px) {
-  body:has(.hero .actions) .funding-intro .funding-link-2020 {
-    max-width: max(220px, calc(100vw - 690px));
+  body:has(.hero .actions) {
+    --funding-2020-target: clamp(220px, 100vw - 690px, 330px);
   }
 }
 
-@media (max-width: 880px) {
+@media (max-width: 1110px) {
   .funding-footer {
     min-height: 0;
     padding-bottom: var(--funding-footer-corner-height);
