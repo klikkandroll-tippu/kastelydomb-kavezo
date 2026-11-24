@@ -4,7 +4,7 @@
 
 .funding-badge {
   position: fixed;
-  left: env(safe-area-inset-left, 0px);
+  right: env(safe-area-inset-right, 0px);
   bottom: env(safe-area-inset-bottom, 0px);
   z-index: 9999;
   width: var(--funding-badge-width);
