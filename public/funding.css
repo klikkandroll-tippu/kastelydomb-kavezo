@@ -1,36 +1,72 @@
-:root {
-  --funding-badge-width: clamp(128px, 20vw, 176px);
+.funding-intro,
+.funding-footer {
+  display: flex;
+  align-items: center;
+  gap: clamp(8px, 2vw, 16px);
 }
 
-.funding-badge {
-  position: fixed;
+.funding-intro {
+  position: absolute;
+  top: calc(100vh - env(safe-area-inset-bottom, 0px));
+  top: calc(100dvh - env(safe-area-inset-bottom, 0px));
   right: env(safe-area-inset-right, 0px);
-  bottom: env(safe-area-inset-bottom, 0px);
+  transform: translateY(-100%);
   z-index: 9999;
-  width: var(--funding-badge-width);
+  align-items: flex-end;
 }
 
-.funding-badge img,
-.funding-footer img {
+.funding-intro[hidden] {
+  display: none;
+}
+
+.funding-link {
+  display: block;
+}
+
+.funding-link img {
   display: block;
   width: 100%;
   height: auto;
 }
 
-.funding-badge:focus-visible {
+.funding-link:focus-visible {
   outline: 3px solid #c99b2f;
+  outline-offset: 2px;
+}
+
+.funding-link-2020 {
+  width: clamp(90px, 27vw, 176px);
+}
+
+.funding-link-rrf {
+  width: clamp(170px, 63vw, 390px);
+}
+
+.funding-link-rrf img {
+  border-radius: 8px;
+  background: #fff;
+}
+
+.funding-intro .funding-link-2020:focus-visible {
   outline-offset: -3px;
 }
 
+.funding-intro .funding-link-rrf {
+  margin-bottom: 8px;
+}
+
 .funding-footer {
-  display: block;
-  width: min(390px, calc(100% - 32px));
+  justify-content: center;
+  padding: 0 12px;
   margin: 20px auto 0;
 }
 
-.funding-footer img {
-  border-radius: 8px;
-  background: #fff;
+.funding-footer .funding-link-2020 {
+  width: clamp(76px, 23vw, 140px);
+}
+
+.funding-footer .funding-link-rrf {
+  min-width: 0;
 }
 
 .offers-funding-footer {
@@ -45,17 +81,8 @@
   color: #edd7b2;
 }
 
-@media (max-width: 760px) {
-  footer:has(.funding-footer)::after {
-    content: "";
-    display: block;
-    height: calc(var(--funding-badge-width) * 469 / 670);
-  }
-}
-
 @media print {
-  .funding-badge,
-  footer:has(.funding-footer)::after {
+  .funding-intro {
     display: none;
   }
 }
