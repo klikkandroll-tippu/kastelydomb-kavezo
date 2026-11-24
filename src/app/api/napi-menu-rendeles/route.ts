@@ -25,6 +25,11 @@ const dishes=[
 ["2026-11-25","Húsleves finommetélttel","Paprikás burgonya","Kapros tökfőzelék, feltét","Sertésszelet 'Jóasszony' módra, Pirított burgonya"],
 ["2026-11-26","Paradicsomleves","Dubarry szelet, Párolt rizs","Rántott halfilé, Petrezselymes burgonya","Sajttal-sonkával töltött borda, Párolt rizs"],
 ["2026-11-27","Babgulyás","Grízes tészta baracklekvárral","Túrós derelye","Bakonyi betyárpecsenye, Petrezselymes burgonya"],
+["2026-11-30","Vöröslencse leves","Rizseshús","Lecsós csirkemáj, Főtt burgonya","Kárpáti borzas szelet, Petrezselymes rizs"],
+["2026-12-01","Zöldbab leves","Gombapaprikás galuskával","Bazsalikomos ragu, Párolt rizs","Kassai töltött borda (sonka,tojás,z.borsó), Tepsis burgonya"],
+["2026-12-02","Csontleves kiskocka tésztával","Főtt tojás, Sóskamártás, Tört burgonya","Babfőzelék, feltét","Fűszervajas csirkemell, Párolt rizs"],
+["2026-12-03","Lebbencsleves","Kentucky csirke, Párolt rizs","Vadas sertéssült, Spagetti","Velővel töltött borda, Hasábburgonya"],
+["2026-12-04","Tárkonyos raguleves","Krumplis tészta","Rizsfelfújt málna öntettel","Natur szelet sajtmártással, Párolt rizs"],
 ];
 // Single menu catalog for both order validation and the public weekly menu.
 export async function GET(){
