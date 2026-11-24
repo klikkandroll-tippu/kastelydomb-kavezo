@@ -22,8 +22,8 @@ const pages = [
     "destination": "/adatkezelesi-tajekoztato.html"
   },
   {
-    "source": "/szechenyi-2020",
-    "destination": "/szechenyi-2020.html"
+    "source": "/palyazatok",
+    "destination": "/palyazatok.html"
   }
 ];
 
@@ -34,6 +34,8 @@ const nextConfig: NextConfig = {
     return [
       { source: "/napi-menu", destination: "/napimenu", permanent: true },
       { source: "/etlap-itallap", destination: "/etlap", permanent: true },
+      { source: "/szechenyi-2020", destination: "/palyazatok", permanent: true },
+      { source: "/szechenyi-2020.html", destination: "/palyazatok", permanent: true },
       ...pages.map(({ source, destination }) => ({
       source: destination,
       destination: source,
