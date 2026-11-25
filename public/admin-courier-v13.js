@@ -227,7 +227,7 @@ deliveryAction=async function(key,action){
  try{
   await kdFetch('/api/admin/delivery-status',{method:'POST',headers:{'Content-Type':'application/json'},
    body:JSON.stringify({kind:task.type==='menu'?'menu':'special',id:r.uuid,date:task.date,action:'delivered'})});
-  modalClose();await kdLoad();openDelivery(key);
+  modalClose();await kdRefreshAfterMutation();openDelivery(key);
  }catch(e){kdNotice(e.message||'Az állapot mentése nem sikerült.');}
 };
 function kdCourierSettlement(day){
