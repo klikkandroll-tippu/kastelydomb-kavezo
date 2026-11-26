@@ -25,8 +25,9 @@ export async function POST(req: NextRequest) {
     const table = tables[kind as keyof typeof tables];
     const timestamp = new Date().toISOString();
     // One-way confirmation. A second click cannot replace the original timestamp.
+    const reservationFilter = kind === "reservations" ? "&status=eq.pending" : "";
     const qs = table + "?id=eq." + encodeURIComponent(id) +
-      "&confirmed_at=is.null&select=id,status,confirmed_at";
+      "&confirmed_at=is.null" + reservationFilter + "&select=id,status,confirmed_at";
     const response = await db(qs, {
       method: "PATCH",
       headers: { Prefer: "return=representation" },
@@ -35,6 +36,7 @@ export async function POST(req: NextRequest) {
     if (!response.ok) return json({ error: "A visszaigazolás mentése nem sikerült." }, 503);
     const rows: unknown = await response.json();
     if (!Array.isArray(rows) || rows.length === 0) {
+      if (kind === "reservations") return json({ error: "Ez a foglalás már nem vár visszaigazolásra. Frissítse a listát." }, 409);
       return json({ error: "A kérelem már visszaigazolt, vagy nem található. Frissítse a listát." }, 409);
     }
     return json({ ok: true, status: "confirmed", confirmed_at: (rows[0] as {confirmed_at:string}).confirmed_at });

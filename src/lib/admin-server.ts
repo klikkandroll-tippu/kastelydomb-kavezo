@@ -81,6 +81,7 @@ function allowedForRole(account:SessionAccount,pathname:string,method:string){
   "/api/admin/delivery-status":"delivery",
   "/api/admin/notes":"menu",
   "/api/admin/confirm":"reservations",
+  "/api/admin/reservations/cancel":"reservations",
   "/api/admin/special-payment":"offers"
  };
  if(requiredPage[pathname] && !account.pages?.includes(requiredPage[pathname])){
@@ -95,6 +96,7 @@ function allowedForRole(account:SessionAccount,pathname:string,method:string){
  if(pathname==="/api/admin/shell")return method==="GET";
  if(pathname==="/api/admin/notes")return role!=="courier";
  if(pathname==="/api/admin/confirm")return role!=="courier";
+ if(pathname==="/api/admin/reservations/cancel")return method==="POST" && role!=="courier";
  if(pathname==="/api/admin/special-payment")return role!=="courier";
  if(pathname==="/api/admin/delivery-status")return true;
  if(pathname==="/api/admin/orders" || pathname==="/api/admin/intake")return method==="GET";

@@ -11,7 +11,8 @@ function line(prefix) {
   return result;
 }
 const home = lines.slice(lines.indexOf(line('const kdReservationDate')), lines.indexOf('}', lines.indexOf(line('function home()'))) + 1).join('\n');
-const details = line('function openReservation(');
+const reservationViews = lines.slice(lines.indexOf(line('function reservations(')), lines.indexOf(line('function messages('))).join('\n');
+const cancel = lines.slice(lines.indexOf(line('async function cancelReservation(')), lines.indexOf(line('toggleMenuConfirm=async'))).join('\n');
 
 function dashboard(reservations = [], { roleAllowed = true, loadState = 'ready' } = {}) {
   class DashboardDate extends Date {
@@ -23,12 +24,17 @@ function dashboard(reservations = [], { roleAllowed = true, loadState = 'ready' 
     roleAllowed: page => page !== 'reservations' || roleAllowed,
     icon: name => `<svg>${name}</svg>`,
     dateHU: date => date,
+    timeHU: datetime => datetime,
+    ui: {},
+    controls: () => '',
+    th: () => '<table><tbody>',
+    tableEnd: () => '</tbody></table>',
     modal: (title, body) => { context.result = { title, body }; },
   });
   vm.runInContext([
     line('const esc='), line('function escapeAttr('), line('function badge('),
     line('function info('), line('function deliveryTasks('),
-    line('function qtySum('), line('function total('), home, details,
+    line('function qtySum('), line('function total('), home, reservationViews, cancel,
   ].join('\n'), context);
   return context;
 }
@@ -137,4 +143,50 @@ test('only authorized roles see the box; a failed load is distinct from an empty
   const unavailable = markup(dashboard([], { loadState: 'unavailable' }));
   assert.match(unavailable, /átmenetileg nem tölthetők be/);
   assert.doesNotMatch(unavailable, /még nem foglaltak/);
+});
+
+test('active reservations offer deletion; a cancelled reservation retains its row and details', () => {
+  const arrival = booking();
+  const context = dashboard([arrival]);
+  vm.runInContext("openReservation('foglalas-1')", context);
+  assert.match(context.result.body, /class="btn primary"[^>]* disabled>Visszaigazolva<\/button>/);
+  assert.match(context.result.body, /class="btn danger"[^>]*>Törlés<\/button>/);
+  arrival.status = 'cancelled';
+  assert.match(vm.runInContext('reservations()', context), /Teszt Vendég[\s\S]*class="badge red">Törölve[\s\S]*Megnézem/);
+  vm.runInContext("openReservation('foglalas-1')", context);
+  assert.match(context.result.body, /class="badge red">Törölve/);
+  assert.match(context.result.body, /2026-11-20T11:00:00Z/);
+  assert.doesNotMatch(context.result.body, /confirmReservation\(|cancelReservation\(/);
+  assert.doesNotMatch(markup(context), /Teszt Vendég/);
+});
+
+test('cancellation requires consent and changes the status only after the server accepts it', async () => {
+  const arrival = booking({ uuid: '11111111-1111-4111-8111-111111111111', status: 'pending', confirmedAt: null });
+  const context = dashboard([arrival]);
+  const button = { disabled: false, isConnected: true };
+  let requests = 0;
+  Object.assign(context, {
+    button, confirm: () => false,
+    kdFetch: async (path, options) => {
+      requests++;
+      assert.equal(path, '/api/admin/reservations/cancel');
+      assert.equal(options.method, 'POST');
+      assert.deepEqual(JSON.parse(options.body), { id: arrival.uuid });
+      assert.equal(button.disabled, true);
+      if (requests === 1) throw Error('Sikertelen mentés');
+    },
+    kdNotice: message => { context.error = message; },
+    render: () => {},
+    kdRefreshAfterMutation: async () => {},
+  });
+  const submit = () => vm.runInContext("cancelReservation('foglalas-1', button)", context);
+  await submit();
+  assert.equal(requests, 0);
+  context.confirm = () => true;
+  await submit();
+  assert.equal(context.error, 'Sikertelen mentés');
+  assert.equal(arrival.status, 'pending');
+  await submit();
+  assert.equal(arrival.status, 'cancelled');
+  assert.match(context.result.body, /class="badge red">Törölve/);
 });
