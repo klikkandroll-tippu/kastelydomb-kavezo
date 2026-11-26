@@ -3,6 +3,10 @@ import { emailRecipients } from "@/lib/email-routing";
 import { persistAdminRow, sendZapierOnce } from "@/lib/admin-persistence";
 
 export const runtime = "nodejs";
+const reservationClosure = {
+  dates: ["2026-12-24", "2026-12-25", "2026-12-26"],
+  notice: "2026. december 24–26. között zárva tartunk, ezekre a napokra nem foglalható asztal.",
+};
 const esc = (v: unknown) => String(v ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]!));
 const validEmail = (v: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
 const isTestMode = () => process.env.VERCEL_ENV === "preview" || process.env.KASTELYDOMB_MODE !== "production";
@@ -28,7 +32,12 @@ function html(title: string, intro: string, rows: [string, string][], footer: st
   <div style="text-align:center;background:#f5f1e9;padding:18px;color:#68594c;font-size:12px">Kastélydomb Kávézó és Étterem</div></div></div></body></html>`;
 }
 export async function GET() {
-  return NextResponse.json({ contact: Boolean(enabled("contact")), reservation: Boolean(enabled("reservation")), is_test: isTestMode() }, {headers: {"Cache-Control":"no-store"}});
+  return NextResponse.json({
+    contact: Boolean(enabled("contact")),
+    reservation: Boolean(enabled("reservation")),
+    reservation_closure: reservationClosure,
+    is_test: isTestMode(),
+  }, { headers: { "Cache-Control": "no-store" } });
 }
 export async function POST(req: NextRequest) {
   const origin = req.headers.get("origin");
@@ -66,6 +75,9 @@ export async function POST(req: NextRequest) {
     const date=get("date",10),time=get("time",5),guests=Number(get("guests",3)),note=get("note",1200);
     const d = /^\d{4}-\d{2}-\d{2}$/.test(date) ? new Date(date+"T12:00:00Z") : new Date("invalid");
     if(!Number.isFinite(d.getTime()) || d.toISOString().slice(0,10)!==date || !/^(?:[01]\d|2[0-3]):[0-5]\d$/.test(time) || !Number.isInteger(guests) || !(guests>=1&&guests<=20))return NextResponse.json({error:"Ellenőrizze a foglalási adatokat."},{status:400});
+    if (reservationClosure.dates.includes(date)) {
+      return NextResponse.json({ error: reservationClosure.notice }, { status: 400 });
+    }
     const timeMinutes=Number(time.slice(0,2))*60+Number(time.slice(3));
     const day=d.getUTCDay(),closing=(day===0?20:day===5||day===6?22:21)*60;
     if(timeMinutes<600||timeMinutes>=closing) return NextResponse.json({error:"A kiválasztott időpont nyitvatartáson kívül esik."},{status:400});
